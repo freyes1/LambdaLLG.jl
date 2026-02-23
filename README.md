@@ -1,4 +1,4 @@
-# LambdaLLG
+# LambdaLLG.jl
 
 A lightweight Julia package for simulating the Landau–Lifshitz–Gilbert (LLG) equation with exchange, anisotropy, external fields, and nonlocal damping in 1D and 2D spin systems.
 
