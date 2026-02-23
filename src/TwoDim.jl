@@ -119,7 +119,7 @@ function normalize_spins2D!(u, p, t)
         end
     end
     
-    println("time is $t")
+    println("time is $t"); flush(stdout)
 end
     
 function rhs2D!(spins::Array{Float64, 3}, p::LLGParams2D, t::Float64)
