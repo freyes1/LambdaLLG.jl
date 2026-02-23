@@ -9,7 +9,7 @@ A lightweight Julia package for simulating the Landau–Lifshitz–Gilbert (LLG)
 Clone the repository:
 
 ```bash
-git clone git@github.com:freyes1/LambdaLLG.jl.git
+git clone https://github.com/freyes1/LambdaLLG.jl
 ```
 
 To use in a project, run from within folder where you want to run:
