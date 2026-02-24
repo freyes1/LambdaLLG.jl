@@ -45,11 +45,11 @@ function add_Bext2D!(spins::Array{Float64, 3}, p::LLGParams2D)
     end
 end
 
-function add_Bstag2D!(spins::Array{Float64, 3}, p::LLGParams2D)
+function add_B_stag2D!(spins::Array{Float64, 3}, p::LLGParams2D)
     @threads for j = 1:p.Ny
         @inbounds for i = 1:p.Nx
             sign = isodd(i + j) ? -1.0 : 1.0
-            p.fields.Beff[3,i,j] += -p.Bstag * sign
+            p.fields.Beff[3,i,j] += -p.B_stag * sign
         end
     end
 end
@@ -106,6 +106,32 @@ function add_nloc_damping2D!(spins::Array{Float64,3}, p::LLGParams2D)
 #     println("Added nonlocal damping")
 end
 
+function add_nloc_damping_stag2D!(spins::Array{Float64,3}, p::LLGParams2D)
+    @threads for j = 1:p.Ny
+        @inbounds for i = 1:p.Nx
+            for (ky,dy) in enumerate(p.ker_dy_stag)
+                shiftj = j + dy
+                if !(1 ≤ shiftj ≤ p.Ny); continue; end
+
+                for (kx,dx) in enumerate(p.ker_dx_stag)
+                    shifti = i + dx
+                    if !(1 ≤ shifti ≤ p.Nx); continue; end
+                    
+                    sublat = isodd(x+y) ? 1 : 2
+
+                    for a = 1:3
+                        for b = 1:3
+                            p.fields.Beff[a,i,j] +=  p.Λtens_stag[sublat,a,b,kx,ky]*p.fields.dS_2[b,shifti,shiftj]
+                        end
+                    end
+                end
+            end
+        end
+    end
+#     println("Added nonlocal damping")
+end
+
+
 
 function normalize_spins2D!(u, p, t)
     spins = reshape(u, 3, p.Nx, p.Ny)
@@ -128,7 +154,7 @@ function rhs2D!(spins::Array{Float64, 3}, p::LLGParams2D, t::Float64)
     add_exchange2D!(spins, p)
     add_anisotropy2D!(spins, p)
     add_Bext2D!(spins, p)
-    if p.stag add_Bstag2D!(spins, p) end
+    if p.stag add_B_stag2D!(spins, p) end
     
     @threads for j = 1:p.Ny    
         @inbounds for i = 1:p.Nx
@@ -143,6 +169,7 @@ function rhs2D!(spins::Array{Float64, 3}, p::LLGParams2D, t::Float64)
         
         add_gilbert2D!(spins, p)
         add_nloc_damping2D!(spins, p)
+        if p.stag add_nloc_damping_stag2D!(spins, p) end
 
         @threads for j = 1:p.Ny
             @inbounds for i = 1:p.Nx

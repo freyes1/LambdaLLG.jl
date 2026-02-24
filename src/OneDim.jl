@@ -29,7 +29,7 @@ function add_Bext1D!(spins::Array{Float64, 2}, p::LLGParams1D)
     end
 end
 
-function add_Bstag1D!(spins::Array{Float64, 2}, p::LLGParams1D)
+function add_B_stag1D!(spins::Array{Float64, 2}, p::LLGParams1D)
     @inbounds for i = 1:p.Nx
         sign = isodd(i) ? -1.0 : 1.0
         p.fields.Beff[3,i] += -p.Bstag * sign
@@ -60,6 +60,23 @@ function add_nloc_damping1D!(spins::Array{Float64, 2}, p::LLGParams1D)
 #     println("Added nonlocal damping")
 end     
 
+function add_nloc_damping_stag1D!(spins::Array{Float64, 2}, p::LLGParams1D)
+    @inbounds for i = 1:p.Nx
+        for (k,dx) in enumerate(p.ker_dx_stag)
+            j = i + dx
+            if 1 <= j <= p.Nx
+                sublat = isodd(i) ? 1 : 2
+                for a=1:3
+                    for b=1:3
+                        p.fields.Beff[a,i] += p.Λtens_stag[sublat,a,b,k] * p.fields.dS_2[b,j]
+                    end
+                end
+            end
+        end
+    end
+end     
+
+
 function normalize_spins1D!(u, p, t)
     spins = reshape(u, 3, p.Nx)
 
@@ -78,7 +95,7 @@ function rhs1D!(spins::Array{Float64, 2}, p::LLGParams1D, t::Float64)
     add_exchange1D!(spins, p)
     add_anisotropy1D!(spins, p)
     add_Bext1D!(spins, p)
-    if p.stag add_Bstag1D!(spins, p) end
+    if p.stag add_B_stag1D!(spins, p) end
 
     @inbounds for i = 1:p.Nx
         @views cross_inplace!(p.fields.dS_1[:,i], spins[:,i], p.fields.Beff[:,i])
@@ -91,6 +108,7 @@ function rhs1D!(spins::Array{Float64, 2}, p::LLGParams1D, t::Float64)
         
         add_gilbert1D!(spins, p)
         add_nloc_damping1D!(spins, p)
+        if p.stag add_nloc_damping_stag1D!(spins, p) end
 
         @inbounds for i = 1:p.Nx
             @views cross_inplace!(p.fields.dS_2[:,i], spins[:,i], p.fields.Beff[:,i])

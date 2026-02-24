@@ -50,7 +50,9 @@ mutable struct LLGParams1D
     Λtens::Array{Float64,3}
     fields::LLGFields1D
     stag::Bool
-    Bstag::Float64
+    B_stag::Float64
+    ker_dx_stag::Vector{Int}
+    Λtens_stag::Array{Float64, 4}
 
     function LLGParams1D(
         Nx::Int,
@@ -68,7 +70,8 @@ mutable struct LLGParams1D
 
         fields = LLGFields1D(Beff, dS_1, dS_2)
 
-        return new(Nx, J, K, B, αG, ker_dx, Λtens, fields, false, 0.0)
+        return new(Nx, J, K, B, αG, ker_dx, Λtens, fields, 
+                   false, 0.0, Int[], zeros(2,3,3,0))
     end
 end
 
@@ -84,7 +87,10 @@ mutable struct LLGParams2D
     Λtens::Array{Float64,4}
     fields::LLGFields2D
     stag::Bool
-    Bstag::Float64
+    B_stag::Float64
+    ker_dx_stag::Vector{Int}
+    ker_dy_stag::Vector{Int}
+    Λtens_stag::Array{Float64,5}
 
     function LLGParams2D(
         Nx::Int,
@@ -104,6 +110,7 @@ mutable struct LLGParams2D
 
         fields = LLGFields2D(Beff, dS_1, dS_2)
 
-        return new(Nx, Ny, J, K, B, αG, ker_dx, ker_dy, Λtens, fields, false, 0.0)
+        return new(Nx, Ny, J, K, B, αG, ker_dx, ker_dy, Λtens, fields, 
+                   false, 0.0, Int[], Int[], zeros(2,3,3,0,0))
     end
 end
