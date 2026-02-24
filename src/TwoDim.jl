@@ -117,7 +117,7 @@ function add_nloc_damping_stag2D!(spins::Array{Float64,3}, p::LLGParams2D)
                     shifti = i + dx
                     if !(1 ≤ shifti ≤ p.Nx); continue; end
                     
-                    sublat = isodd(x+y) ? 1 : 2
+                    sublat = isodd(i+j) ? 1 : 2
 
                     for a = 1:3
                         for b = 1:3
