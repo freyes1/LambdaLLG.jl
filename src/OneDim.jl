@@ -32,7 +32,7 @@ end
 function add_B_stag1D!(spins::Array{Float64, 2}, p::LLGParams1D)
     @inbounds for i = 1:p.Nx
         sign = isodd(i) ? -1.0 : 1.0
-        p.fields.Beff[3,i] += -p.Bstag * sign
+        p.fields.Beff[3,i] += -p.B_stag * sign
     end
 end
 
