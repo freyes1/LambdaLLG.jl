@@ -77,7 +77,7 @@ function add_nloc_damping_stag1D!(spins::Array{Float64, 2}, p::LLGParams1D)
 end     
 
 
-function normalize_spins1D!(u, p, t)
+function normalize_spins1D!(u, p, t; verbose=false)
     spins = reshape(u, 3, p.Nx)
 
     @inbounds for i in 1:p.Nx
@@ -86,7 +86,7 @@ function normalize_spins1D!(u, p, t)
             spins[c,i] /= n
         end
     end
-#     println("time is $t")
+    if verbose println("time is $t"); flush(stdout) end
 end
 
 function rhs1D!(spins::Array{Float64, 2}, p::LLGParams1D, t::Float64)

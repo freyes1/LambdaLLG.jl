@@ -133,7 +133,7 @@ end
 
 
 
-function normalize_spins2D!(u, p, t)
+function normalize_spins2D!(u, p, t; verbose=false)
     spins = reshape(u, 3, p.Nx, p.Ny)
 
     @threads for j in 1:p.Ny
@@ -145,7 +145,7 @@ function normalize_spins2D!(u, p, t)
         end
     end
     
-    println("time is $t"); flush(stdout)
+    if verbose println("time is $t"); flush(stdout) end
 end
     
 function rhs2D!(spins::Array{Float64, 3}, p::LLGParams2D, t::Float64)
