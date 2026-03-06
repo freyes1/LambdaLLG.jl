@@ -1,3 +1,11 @@
+"""
+    evolve1D(s0, tspan, p::LLGParams1D; reltol=1e-6, abstol=1e-6, verbose=false)
+
+Integrate 1D LLG dynamics from initial state `s0` over `tspan`.
+
+Spin normalization is enforced at each accepted step via a
+`DiscreteCallback`. Returns the `ODESolution`.
+"""
 function evolve1D(s0, tspan, p::LLGParams1D; reltol = 1e-6, abstol = 1e-6, verbose=false)
     # A callback function could be used to include time dependent parameters
     cb = DE.DiscreteCallback((u,t,integrator)->true,
@@ -8,6 +16,14 @@ function evolve1D(s0, tspan, p::LLGParams1D; reltol = 1e-6, abstol = 1e-6, verbo
     return sol
 end
 
+"""
+    evolve2D(s0, tspan, p::LLGParams2D; reltol=1e-6, abstol=1e-6, verbose=false)
+
+Integrate 2D LLG dynamics from initial state `s0` over `tspan`.
+
+Spin normalization is enforced at each accepted step via a
+`DiscreteCallback`. Returns the `ODESolution`.
+"""
 function evolve2D(s0, tspan, p::LLGParams2D; reltol = 1e-6, abstol = 1e-6, verbose=false)
     cb = DE.DiscreteCallback((u,t,integrator)->true,
                       integrator->normalize_spins2D!(integrator.u, integrator.p, integrator.t, verbose=verbose))

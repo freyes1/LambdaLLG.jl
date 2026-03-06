@@ -5,7 +5,8 @@ Workspace buffers for the 1D Landau–Lifshitz–Gilbert solver.
 
 # Fields
 - `Beff::Array{Float64, 2}`: Effective magnetic field array of size (3, Nx).
-- `dS::Array{Float64, 2}`: Temporary storage for spin time derivatives of size (3, Nx).
+- `dS_1::Array{Float64, 2}`: Pre-damping torque term of size (3, Nx).
+- `dS_2::Array{Float64, 2}`: Iterative total torque accumulator of size (3, Nx).
 
 These arrays are preallocated and reused during RHS evaluations to avoid allocations.
 """
@@ -15,6 +16,16 @@ struct LLGFields1D
     dS_2::Array{Float64, 2}
 end
 
+"""
+    LLGFields2D
+
+Workspace buffers for the 2D Landau–Lifshitz–Gilbert solver.
+
+# Fields
+- `Beff::Array{Float64, 3}`: Effective magnetic field array of size (3, Nx, Ny).
+- `dS_1::Array{Float64, 3}`: Pre-damping torque term of size (3, Nx, Ny).
+- `dS_2::Array{Float64, 3}`: Iterative total torque accumulator of size (3, Nx, Ny).
+"""
 struct LLGFields2D
     Beff::Array{Float64, 3}
     dS_1::Array{Float64, 3}
@@ -35,6 +46,10 @@ Parameters and precomputed data for a 1D LLG simulation with open boundary condi
 - `ker_dx::Vector{Int}`: Relative site offsets for nonlocal damping kernel.
 - `Λtens::Array{Float64,3}`: Nonlocal damping tensor of size (3,3,n_offsets).
 - `fields::LLGFields1D`: Preallocated workspace buffers.
+- `stag::Bool`: Enable staggered (two-sublattice) nonlocal damping and field terms.
+- `B_stag::Float64`: Staggered field amplitude in the z-direction.
+- `ker_dx_stag::Vector{Int}`: Relative offsets for staggered kernel.
+- `Λtens_stag::Array{Float64,4}`: Staggered damping tensor `(sublattice, a, b, k)`.
 
 # Notes
 - Open boundary conditions are assumed.
@@ -75,6 +90,24 @@ mutable struct LLGParams1D
     end
 end
 
+"""
+    LLGParams2D
+
+Parameters and precomputed data for a 2D LLG simulation with open boundaries.
+
+# Fields
+- `Nx`, `Ny`: Lattice dimensions.
+- `J`, `K`, `B`, `αG`: Exchange, anisotropy, external field, and local damping.
+- `ker_dx`, `ker_dy`: Relative offsets for nonlocal damping support.
+- `Λtens::Array{Float64,4}`: Nonlocal damping tensor `(a, b, kx, ky)`.
+- `fields::LLGFields2D`: Preallocated workspace buffers.
+- `stag`, `B_stag`, `ker_dx_stag`, `ker_dy_stag`, `Λtens_stag`: Optional
+  two-sublattice staggered terms.
+
+# Constructor keywords
+- `ker_dx`, `ker_dy`: default to empty vectors.
+- `Λtens`: defaults to a zero-sized `(3,3,0,0)` tensor.
+"""
 mutable struct LLGParams2D
     Nx::Int
     Ny::Int

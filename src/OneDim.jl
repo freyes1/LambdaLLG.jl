@@ -1,3 +1,9 @@
+"""
+    add_exchange1D!(spins, p)
+
+Accumulate nearest-neighbor exchange contributions to `p.fields.Beff` for a 1D
+open chain.
+"""
 function add_exchange1D!(spins::Array{Float64, 2}, p::LLGParams1D)
     @inbounds for i = 1:p.Nx
         if i > 1 # Has neighbor to the left
@@ -13,6 +19,11 @@ function add_exchange1D!(spins::Array{Float64, 2}, p::LLGParams1D)
     end
 end
 
+"""
+    add_anisotropy1D!(spins, p)
+
+Accumulate on-site anisotropy contributions `-K .* S` into `p.fields.Beff`.
+"""
 function add_anisotropy1D!(spins::Array{Float64, 2}, p::LLGParams1D)
     @inbounds for i = 1:p.Nx
         for c = 1:3
@@ -21,6 +32,11 @@ function add_anisotropy1D!(spins::Array{Float64, 2}, p::LLGParams1D)
     end
 end
 
+"""
+    add_Bext1D!(spins, p)
+
+Accumulate uniform external-field contributions into `p.fields.Beff`.
+"""
 function add_Bext1D!(spins::Array{Float64, 2}, p::LLGParams1D)
     @inbounds for i = 1:p.Nx
         for c = 1:3
@@ -29,6 +45,11 @@ function add_Bext1D!(spins::Array{Float64, 2}, p::LLGParams1D)
     end
 end
 
+"""
+    add_B_stag1D!(spins, p)
+
+Accumulate a staggered z-field term with alternating sign along the chain.
+"""
 function add_B_stag1D!(spins::Array{Float64, 2}, p::LLGParams1D)
     @inbounds for i = 1:p.Nx
         sign = isodd(i) ? -1.0 : 1.0
@@ -36,6 +57,11 @@ function add_B_stag1D!(spins::Array{Float64, 2}, p::LLGParams1D)
     end
 end
 
+"""
+    add_gilbert1D!(spins, p)
+
+Accumulate local Gilbert damping contributions based on the current `dS_2`.
+"""
 function add_gilbert1D!(spins::Array{Float64, 2}, p::LLGParams1D)
     @inbounds for i = 1:p.Nx
         for c = 1:3
@@ -44,6 +70,12 @@ function add_gilbert1D!(spins::Array{Float64, 2}, p::LLGParams1D)
     end
 end
 
+"""
+    add_nloc_damping1D!(spins, p)
+
+Accumulate translationally invariant nonlocal damping contributions using
+`p.ker_dx` and `p.Λtens`.
+"""
 function add_nloc_damping1D!(spins::Array{Float64, 2}, p::LLGParams1D)
     @inbounds for i = 1:p.Nx
         for (k,dx) in enumerate(p.ker_dx)
@@ -60,6 +92,11 @@ function add_nloc_damping1D!(spins::Array{Float64, 2}, p::LLGParams1D)
 #     println("Added nonlocal damping")
 end     
 
+"""
+    add_nloc_damping_stag1D!(spins, p)
+
+Accumulate staggered nonlocal damping terms using sublattice-dependent tensors.
+"""
 function add_nloc_damping_stag1D!(spins::Array{Float64, 2}, p::LLGParams1D)
     @inbounds for i = 1:p.Nx
         for (k,dx) in enumerate(p.ker_dx_stag)
@@ -77,6 +114,12 @@ function add_nloc_damping_stag1D!(spins::Array{Float64, 2}, p::LLGParams1D)
 end     
 
 
+"""
+    normalize_spins1D!(u, p, t; verbose=false)
+
+Normalize each spin vector in-place to unit length. Intended for use in the
+DiscreteCallback during time integration.
+"""
 function normalize_spins1D!(u, p, t; verbose=false)
     spins = reshape(u, 3, p.Nx)
 
@@ -89,6 +132,13 @@ function normalize_spins1D!(u, p, t; verbose=false)
     if verbose println("time is $t"); flush(stdout) end
 end
 
+"""
+    rhs1D!(spins, p, t)
+
+Evaluate the 1D LLG right-hand side for the current spin configuration.
+
+Returns `p.fields.dS_2`, which stores the latest time derivative estimate.
+"""
 function rhs1D!(spins::Array{Float64, 2}, p::LLGParams1D, t::Float64)
     fill!(p.fields.Beff, 0.0)
 
@@ -120,6 +170,11 @@ function rhs1D!(spins::Array{Float64, 2}, p::LLGParams1D, t::Float64)
     return p.fields.dS_2
 end 
 
+"""
+    rhs1D_DE!(du, u, p, t)
+
+DifferentialEquations-compatible RHS wrapper for 1D LLG dynamics.
+"""
 function rhs1D_DE!(du, u, p, t)
     spins = reshape(u, 3, p.Nx)
 

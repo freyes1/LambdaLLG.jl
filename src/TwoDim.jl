@@ -1,3 +1,9 @@
+"""
+    add_exchange2D!(spins, p)
+
+Accumulate nearest-neighbor exchange contributions to `p.fields.Beff` on a 2D
+open lattice.
+"""
 function add_exchange2D!(spins::Array{Float64, 3}, p::LLGParams2D)
     @threads for j = 1:p.Ny 
         @inbounds for i = 1:p.Nx 
@@ -25,6 +31,11 @@ function add_exchange2D!(spins::Array{Float64, 3}, p::LLGParams2D)
     end
 end
 
+"""
+    add_anisotropy2D!(spins, p)
+
+Accumulate on-site anisotropy contributions `-K .* S` into `p.fields.Beff`.
+"""
 function add_anisotropy2D!(spins::Array{Float64, 3}, p::LLGParams2D)
     @threads for j = 1:p.Ny
         @inbounds for i = 1:p.Nx
@@ -35,6 +46,11 @@ function add_anisotropy2D!(spins::Array{Float64, 3}, p::LLGParams2D)
     end
 end
 
+"""
+    add_Bext2D!(spins, p)
+
+Accumulate uniform external-field contributions into `p.fields.Beff`.
+"""
 function add_Bext2D!(spins::Array{Float64, 3}, p::LLGParams2D)
     @threads for j = 1:p.Ny
         @inbounds for i = 1:p.Nx
@@ -45,6 +61,12 @@ function add_Bext2D!(spins::Array{Float64, 3}, p::LLGParams2D)
     end
 end
 
+"""
+    add_B_stag2D!(spins, p)
+
+Accumulate a checkerboard staggered z-field term with alternating sign between
+sublattices.
+"""
 function add_B_stag2D!(spins::Array{Float64, 3}, p::LLGParams2D)
     @threads for j = 1:p.Ny
         @inbounds for i = 1:p.Nx
@@ -54,6 +76,11 @@ function add_B_stag2D!(spins::Array{Float64, 3}, p::LLGParams2D)
     end
 end
 
+"""
+    add_gilbert2D!(spins, p)
+
+Accumulate local Gilbert damping contributions based on the current `dS_2`.
+"""
 function add_gilbert2D!(spins::Array{Float64, 3}, p::LLGParams2D)
     @threads for j = 1:p.Ny
         @inbounds for i = 1:p.Nx
@@ -83,6 +110,12 @@ end
 #     println("Added nonlocal damping")
 # end  
 
+"""
+    add_nloc_damping2D!(spins, p)
+
+Accumulate translationally invariant nonlocal damping contributions using the
+offset supports `ker_dx` and `ker_dy`.
+"""
 function add_nloc_damping2D!(spins::Array{Float64,3}, p::LLGParams2D)
     @threads for j = 1:p.Ny
         @inbounds for i = 1:p.Nx
@@ -106,6 +139,11 @@ function add_nloc_damping2D!(spins::Array{Float64,3}, p::LLGParams2D)
 #     println("Added nonlocal damping")
 end
 
+"""
+    add_nloc_damping_stag2D!(spins, p)
+
+Accumulate sublattice-dependent nonlocal damping contributions in 2D.
+"""
 function add_nloc_damping_stag2D!(spins::Array{Float64,3}, p::LLGParams2D)
     @threads for j = 1:p.Ny
         @inbounds for i = 1:p.Nx
@@ -133,6 +171,12 @@ end
 
 
 
+"""
+    normalize_spins2D!(u, p, t; verbose=false)
+
+Normalize each 2D lattice spin vector in-place to unit length. Intended for use
+in the DiscreteCallback during time integration.
+"""
 function normalize_spins2D!(u, p, t; verbose=false)
     spins = reshape(u, 3, p.Nx, p.Ny)
 
@@ -148,6 +192,13 @@ function normalize_spins2D!(u, p, t; verbose=false)
     if verbose println("time is $t"); flush(stdout) end
 end
     
+"""
+    rhs2D!(spins, p, t)
+
+Evaluate the 2D LLG right-hand side for the current spin configuration.
+
+Returns `p.fields.dS_2`, which stores the latest time derivative estimate.
+"""
 function rhs2D!(spins::Array{Float64, 3}, p::LLGParams2D, t::Float64)
     fill!(p.fields.Beff, 0.0)
 
@@ -184,6 +235,11 @@ function rhs2D!(spins::Array{Float64, 3}, p::LLGParams2D, t::Float64)
 end 
 
 
+"""
+    rhs2D_DE!(du, u, p, t)
+
+DifferentialEquations-compatible RHS wrapper for 2D LLG dynamics.
+"""
 function rhs2D_DE!(du, u, p, t)
     spins = reshape(u, 3, p.Nx, p.Ny)
 
