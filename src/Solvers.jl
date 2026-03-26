@@ -1,7 +1,7 @@
 """
     evolve1D(s0, tspan, p::LLGParams1D; reltol=1e-6, abstol=1e-6, verbose=false)
 
-Integrate 1D LLG dynamics from initial state `s0` over `tspan`.
+Integrates 1D LLG dynamics from initial state `s0` over `tspan`.
 
 Spin normalization is enforced at each accepted step via a
 `DiscreteCallback`. Returns the `ODESolution`.

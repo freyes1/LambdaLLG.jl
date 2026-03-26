@@ -60,7 +60,7 @@ end
 """
     add_gilbert1D!(spins, p)
 
-Accumulate local Gilbert damping contributions based on the current `dS_2`.
+Accumulates local Gilbert damping contributions based on the current `dS_2`.
 """
 function add_gilbert1D!(spins::Array{Float64, 2}, p::LLGParams1D)
     @inbounds for i = 1:p.Nx
@@ -95,7 +95,7 @@ end
 """
     add_nloc_damping_stag1D!(spins, p)
 
-Accumulate staggered nonlocal damping terms using sublattice-dependent tensors.
+Accumulates staggered nonlocal damping terms using sublattice-dependent tensors.
 """
 function add_nloc_damping_stag1D!(spins::Array{Float64, 2}, p::LLGParams1D)
     @inbounds for i = 1:p.Nx
