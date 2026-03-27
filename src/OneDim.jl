@@ -20,6 +20,27 @@ function add_exchange1D!(spins::Array{Float64, 2}, p::LLGParams1D)
 end
 
 """
+    add_bulk_dmi1D!(spins, p)
+
+Accumulate translationally invariant nearest-neighbor bulk DMI contributions
+for the discrete bond energy `sum_i D · (S_i × S_{i+1})` on a 1D open chain.
+This contributes `D × (S_{i+1} - S_{i-1})` to `p.fields.Beff`.
+"""
+function add_bulk_dmi1D!(spins::Array{Float64, 2}, p::LLGParams1D)
+    Dx, Dy, Dz = p.D
+
+    @inbounds for i = 1:p.Nx
+        dSx = (i < p.Nx ? spins[1, i + 1] : 0.0) - (i > 1 ? spins[1, i - 1] : 0.0)
+        dSy = (i < p.Nx ? spins[2, i + 1] : 0.0) - (i > 1 ? spins[2, i - 1] : 0.0)
+        dSz = (i < p.Nx ? spins[3, i + 1] : 0.0) - (i > 1 ? spins[3, i - 1] : 0.0)
+
+        p.fields.Beff[1, i] += Dy * dSz - Dz * dSy
+        p.fields.Beff[2, i] += Dz * dSx - Dx * dSz
+        p.fields.Beff[3, i] += Dx * dSy - Dy * dSx
+    end
+end
+
+"""
     add_anisotropy1D!(spins, p)
 
 Accumulate on-site anisotropy contributions `-K .* S` into `p.fields.Beff`.
@@ -143,6 +164,7 @@ function rhs1D!(spins::Array{Float64, 2}, p::LLGParams1D, t::Float64)
     fill!(p.fields.Beff, 0.0)
 
     add_exchange1D!(spins, p)
+    add_bulk_dmi1D!(spins, p)
     add_anisotropy1D!(spins, p)
     add_Bext1D!(spins, p)
     if p.stag add_B_stag1D!(spins, p) end

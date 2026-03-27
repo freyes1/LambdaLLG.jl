@@ -3,6 +3,7 @@
 ## Notebook files in this repository
 
 - `examples/LambdaLLG_1D_quickstart.ipynb`
+- `examples/LambdaLLG_1D_Bloch_domain_wall.ipynb`
 - `examples/LambdaLLG_2D_quickstart.ipynb`
 - `LambdaLLG_examples.ipynb` (index notebook linking both quickstarts)
 

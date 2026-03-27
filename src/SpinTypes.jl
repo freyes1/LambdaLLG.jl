@@ -40,6 +40,7 @@ Parameters and precomputed data for a 1D LLG simulation with open boundary condi
 # Fields
 - `Nx::Int`: Number of lattice sites.
 - `J::Float64`: Nearest-neighbor exchange constant.
+- `D::NTuple{3, Float64}`: Translationally invariant nearest-neighbor bulk DMI vector.
 - `K::NTuple{3, Float64}`: On-site anisotropy vector.
 - `B::NTuple{3, Float64}`: External magnetic field.
 - `αG::Float64`: Local Gilbert damping constant.
@@ -58,6 +59,7 @@ Parameters and precomputed data for a 1D LLG simulation with open boundary condi
 mutable struct LLGParams1D
     Nx::Int
     J::Float64
+    D::NTuple{3, Float64}
     K::NTuple{3, Float64}
     B::NTuple{3, Float64}
     αG::Float64
@@ -75,6 +77,7 @@ mutable struct LLGParams1D
         K::NTuple{3, Float64},
         B::NTuple{3, Float64},
         αG::Float64;
+        D::NTuple{3, Float64} = (0.0, 0.0, 0.0),
         ker_dx::Vector{Int} = Int[],
         Λtens::Array{Float64,3} = zeros(3,3,0)
     )
@@ -85,7 +88,7 @@ mutable struct LLGParams1D
 
         fields = LLGFields1D(Beff, dS_1, dS_2)
 
-        return new(Nx, J, K, B, αG, ker_dx, Λtens, fields, 
+        return new(Nx, J, D, K, B, αG, ker_dx, Λtens, fields, 
                    false, 0.0, Int[], zeros(2,3,3,0))
     end
 end
