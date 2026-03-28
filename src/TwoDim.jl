@@ -32,6 +32,40 @@ function add_exchange2D!(spins::Array{Float64, 3}, p::LLGParams2D)
 end
 
 """
+    add_dmi2D!(spins, p)
+
+Accumulate translationally invariant nearest-neighbor DMI contributions for the
+discrete bond energy
+
+`sum_{i,j} D_x · (S[i,j] × S[i+1,j]) + D_y · (S[i,j] × S[i,j+1])`
+
+on a 2D open lattice. The two bond vectors in `p.D` correspond to the x- and
+y-directed nearest-neighbor bonds, so this same representation covers both bulk
+and interface DMI.
+"""
+function add_dmi2D!(spins::Array{Float64, 3}, p::LLGParams2D)
+    Dx, Dy = p.D
+    Dxx, Dxy, Dxz = Dx
+    Dyx, Dyy, Dyz = Dy
+
+    @threads for j = 1:p.Ny
+        @inbounds for i = 1:p.Nx
+            dSx_x = (i < p.Nx ? spins[1, i + 1, j] : 0.0) - (i > 1 ? spins[1, i - 1, j] : 0.0)
+            dSy_x = (i < p.Nx ? spins[2, i + 1, j] : 0.0) - (i > 1 ? spins[2, i - 1, j] : 0.0)
+            dSz_x = (i < p.Nx ? spins[3, i + 1, j] : 0.0) - (i > 1 ? spins[3, i - 1, j] : 0.0)
+
+            dSx_y = (j < p.Ny ? spins[1, i, j + 1] : 0.0) - (j > 1 ? spins[1, i, j - 1] : 0.0)
+            dSy_y = (j < p.Ny ? spins[2, i, j + 1] : 0.0) - (j > 1 ? spins[2, i, j - 1] : 0.0)
+            dSz_y = (j < p.Ny ? spins[3, i, j + 1] : 0.0) - (j > 1 ? spins[3, i, j - 1] : 0.0)
+
+            p.fields.Beff[1, i, j] += Dxy * dSz_x - Dxz * dSy_x + Dyy * dSz_y - Dyz * dSy_y
+            p.fields.Beff[2, i, j] += Dxz * dSx_x - Dxx * dSz_x + Dyz * dSx_y - Dyx * dSz_y
+            p.fields.Beff[3, i, j] += Dxx * dSy_x - Dxy * dSx_x + Dyx * dSy_y - Dyy * dSx_y
+        end
+    end
+end
+
+"""
     add_anisotropy2D!(spins, p)
 
 Accumulate on-site anisotropy contributions `-K .* S` into `p.fields.Beff`.
@@ -203,6 +237,7 @@ function rhs2D!(spins::Array{Float64, 3}, p::LLGParams2D, t::Float64)
     fill!(p.fields.Beff, 0.0)
 
     add_exchange2D!(spins, p)
+    add_dmi2D!(spins, p)
     add_anisotropy2D!(spins, p)
     add_Bext2D!(spins, p)
     if p.stag add_B_stag2D!(spins, p) end

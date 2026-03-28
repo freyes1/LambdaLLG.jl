@@ -6,7 +6,8 @@ dynamics with local and nonlocal damping in 1D and 2D spin lattices.
 ## Features
 
 - 1D and 2D LLG solvers with open boundary conditions.
-- Exchange, bulk DMI in 1D, anisotropy, and external magnetic field terms.
+- Exchange, anisotropy, external magnetic field, 1D bulk DMI, and directional
+  2D nearest-neighbor DMI terms.
 - Local Gilbert damping and optional nonlocal damping kernels.
 - Optional staggered (two-sublattice) damping/field terms.
 - DifferentialEquations.jl backend with per-step spin normalization callback.
@@ -73,6 +74,7 @@ julia --project=docs -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate(); in
 - `LambdaLLG_examples.ipynb` (index notebook)
 - `examples/LambdaLLG_1D_Bloch_domain_wall.ipynb`
 - `examples/LambdaLLG_1D_quickstart.ipynb`
+- `examples/LambdaLLG_2D_DMI_skyrmion_test.ipynb`
 - `examples/LambdaLLG_2D_quickstart.ipynb`
 
 ## Notes
@@ -80,4 +82,9 @@ julia --project=docs -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate(); in
 - Spins are renormalized at every callback step during integration.
 - `format_results(sol)` returns rows as time snapshots.
 - For 1D bulk DMI, pass a constant bond vector with the `D=(Dx, Dy, Dz)` keyword.
+- For 2D DMI, pass directional bond vectors with
+  `D=((Dx_x, Dx_y, Dx_z), (Dy_x, Dy_y, Dy_z))`.
+- On a square lattice, common choices are bulk DMI
+  `D=((D, 0, 0), (0, D, 0))` and interface DMI
+  `D=((0, D, 0), (-D, 0, 0))`.
 - For nonlocal damping, populate `ker_dx`, `ker_dy`, and `Λtens` before evolution.

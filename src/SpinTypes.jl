@@ -1,7 +1,7 @@
 """
     LLGFields1D
 
-Workspace buffers for the 1D Landau–Lifshitz–Gilbert solver.
+Workspace buffers for the 1D Landau-Lifshitz-Gilbert solver.
 
 # Fields
 - `Beff::Array{Float64, 2}`: Effective magnetic field array of size (3, Nx).
@@ -19,7 +19,7 @@ end
 """
     LLGFields2D
 
-Workspace buffers for the 2D Landau–Lifshitz–Gilbert solver.
+Workspace buffers for the 2D Landau-Lifshitz-Gilbert solver.
 
 # Fields
 - `Beff::Array{Float64, 3}`: Effective magnetic field array of size (3, Nx, Ny).
@@ -88,7 +88,7 @@ mutable struct LLGParams1D
 
         fields = LLGFields1D(Beff, dS_1, dS_2)
 
-        return new(Nx, J, D, K, B, αG, ker_dx, Λtens, fields, 
+        return new(Nx, J, D, K, B, αG, ker_dx, Λtens, fields,
                    false, 0.0, Int[], zeros(2,3,3,0))
     end
 end
@@ -100,7 +100,9 @@ Parameters and precomputed data for a 2D LLG simulation with open boundaries.
 
 # Fields
 - `Nx`, `Ny`: Lattice dimensions.
-- `J`, `K`, `B`, `αG`: Exchange, anisotropy, external field, and local damping.
+- `J`, `D`, `K`, `B`, `αG`: Exchange, directional nearest-neighbor DMI bond
+  vectors for the x/y lattice directions, anisotropy, external field, and local
+  damping.
 - `ker_dx`, `ker_dy`: Relative offsets for nonlocal damping support.
 - `Λtens::Array{Float64,4}`: Nonlocal damping tensor `(a, b, kx, ky)`.
 - `fields::LLGFields2D`: Preallocated workspace buffers.
@@ -108,6 +110,7 @@ Parameters and precomputed data for a 2D LLG simulation with open boundaries.
   two-sublattice staggered terms.
 
 # Constructor keywords
+- `D`: defaults to zero bond vectors `((0,0,0), (0,0,0))`.
 - `ker_dx`, `ker_dy`: default to empty vectors.
 - `Λtens`: defaults to a zero-sized `(3,3,0,0)` tensor.
 """
@@ -115,6 +118,7 @@ mutable struct LLGParams2D
     Nx::Int
     Ny::Int
     J::Float64
+    D::NTuple{2, NTuple{3, Float64}}
     K::NTuple{3, Float64}
     B::NTuple{3, Float64}
     αG::Float64
@@ -135,6 +139,7 @@ mutable struct LLGParams2D
         K::NTuple{3, Float64},
         B::NTuple{3, Float64},
         αG::Float64;
+        D::NTuple{2, NTuple{3, Float64}} = ((0.0, 0.0, 0.0), (0.0, 0.0, 0.0)),
         ker_dx::Vector{Int} = Int[],
         ker_dy::Vector{Int} = Int[],
         Λtens::Array{Float64,4} = zeros(3,3,0,0)
@@ -146,7 +151,7 @@ mutable struct LLGParams2D
 
         fields = LLGFields2D(Beff, dS_1, dS_2)
 
-        return new(Nx, Ny, J, K, B, αG, ker_dx, ker_dy, Λtens, fields, 
+        return new(Nx, Ny, J, D, K, B, αG, ker_dx, ker_dy, Λtens, fields,
                    false, 0.0, Int[], Int[], zeros(2,3,3,0,0))
     end
 end
