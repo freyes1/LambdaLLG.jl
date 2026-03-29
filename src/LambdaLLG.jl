@@ -15,7 +15,7 @@ export LLGParams1D, LLGParams2D
 export format_results
 export uniform_state1D, uniform_state2D
 export normalize_spins!
-export paint_domain_wall!, paint_skyrmion!
+export paint_domain_wall!
 
 include("SpinTypes.jl")
 include("InitialStates.jl")

@@ -96,6 +96,114 @@ function add_Bext2D!(spins::Array{Float64, 3}, p::LLGParams2D)
 end
 
 """
+    add_stt2D!(spins, p)
+
+Accumulate the optional 2D Zhang-Li spin-transfer torque directly into
+`p.fields.dS_1`.
+
+Unlike the field-based terms accumulated into `p.fields.Beff`, the spin-transfer
+torque contributes directly to the time derivative. In lattice-spacing units
+with `a = 1`, the implemented 2D form is
+
+`-(u · ∇) s + beta_stt * (s × ((u · ∇) s))`
+
+with `u = (u_x, u_y) = p.u_stt`. Centered finite differences are used in the
+bulk, and one-sided differences are used at open boundaries.
+
+References:
+- Shufeng Zhang and Zhidong Li, Phys. Rev. Lett. 93, 127204 (2004),
+  doi:10.1103/PhysRevLett.93.127204
+- Andre Thiaville, Yuriy Nakatani, Jurgen Miltat, and Nicolas Vernier,
+  Europhys. Lett. 69, 990 (2005), doi:10.1209/epl/i2004-10452-6
+"""
+function add_stt2D!(spins::Array{Float64, 3}, p::LLGParams2D)
+    ux, uy = p.u_stt
+    if (ux == 0.0 && uy == 0.0) || (p.Nx == 1 && p.Ny == 1)
+        return nothing
+    end
+
+    beta = p.beta_stt
+
+    @threads for j = 1:p.Ny
+        @inbounds for i = 1:p.Nx
+            dSx_dx = if p.Nx == 1
+                0.0
+            elseif i == 1
+                spins[1, 2, j] - spins[1, 1, j]
+            elseif i == p.Nx
+                spins[1, p.Nx, j] - spins[1, p.Nx - 1, j]
+            else
+                0.5 * (spins[1, i + 1, j] - spins[1, i - 1, j])
+            end
+            dSy_dx = if p.Nx == 1
+                0.0
+            elseif i == 1
+                spins[2, 2, j] - spins[2, 1, j]
+            elseif i == p.Nx
+                spins[2, p.Nx, j] - spins[2, p.Nx - 1, j]
+            else
+                0.5 * (spins[2, i + 1, j] - spins[2, i - 1, j])
+            end
+            dSz_dx = if p.Nx == 1
+                0.0
+            elseif i == 1
+                spins[3, 2, j] - spins[3, 1, j]
+            elseif i == p.Nx
+                spins[3, p.Nx, j] - spins[3, p.Nx - 1, j]
+            else
+                0.5 * (spins[3, i + 1, j] - spins[3, i - 1, j])
+            end
+
+            dSx_dy = if p.Ny == 1
+                0.0
+            elseif j == 1
+                spins[1, i, 2] - spins[1, i, 1]
+            elseif j == p.Ny
+                spins[1, i, p.Ny] - spins[1, i, p.Ny - 1]
+            else
+                0.5 * (spins[1, i, j + 1] - spins[1, i, j - 1])
+            end
+            dSy_dy = if p.Ny == 1
+                0.0
+            elseif j == 1
+                spins[2, i, 2] - spins[2, i, 1]
+            elseif j == p.Ny
+                spins[2, i, p.Ny] - spins[2, i, p.Ny - 1]
+            else
+                0.5 * (spins[2, i, j + 1] - spins[2, i, j - 1])
+            end
+            dSz_dy = if p.Ny == 1
+                0.0
+            elseif j == 1
+                spins[3, i, 2] - spins[3, i, 1]
+            elseif j == p.Ny
+                spins[3, i, p.Ny] - spins[3, i, p.Ny - 1]
+            else
+                0.5 * (spins[3, i, j + 1] - spins[3, i, j - 1])
+            end
+
+            gx = ux * dSx_dx + uy * dSx_dy
+            gy = ux * dSy_dx + uy * dSy_dy
+            gz = ux * dSz_dx + uy * dSz_dy
+
+            sx = spins[1, i, j]
+            sy = spins[2, i, j]
+            sz = spins[3, i, j]
+
+            tx = sy * gz - sz * gy
+            ty = sz * gx - sx * gz
+            tz = sx * gy - sy * gx
+
+            p.fields.dS_1[1, i, j] += -gx + beta * tx
+            p.fields.dS_1[2, i, j] += -gy + beta * ty
+            p.fields.dS_1[3, i, j] += -gz + beta * tz
+        end
+    end
+
+    return nothing
+end
+
+"""
     add_B_stag2D!(spins, p)
 
 Accumulate a checkerboard staggered z-field term with alternating sign between
@@ -238,6 +346,7 @@ function rhs2D!(spins::Array{Float64, 3}, p::LLGParams2D, t::Float64)
             @views cross_inplace!(p.fields.dS_1[:,i,j], spins[:,i,j], p.fields.Beff[:,i,j])
         end
     end
+    if p.stt_active add_stt2D!(spins, p) end
 
     p.fields.dS_2 .= p.fields.dS_1
 

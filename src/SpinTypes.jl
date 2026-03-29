@@ -4,9 +4,9 @@
 Workspace buffers for the 1D Landau-Lifshitz-Gilbert solver.
 
 # Fields
-- `Beff::Array{Float64, 2}`: Effective magnetic field array of size (3, Nx).
-- `dS_1::Array{Float64, 2}`: Pre-damping torque term of size (3, Nx).
-- `dS_2::Array{Float64, 2}`: Iterative total torque accumulator of size (3, Nx).
+- `Beff::Array{Float64, 2}`: Effective magnetic field array of size `(3, Nx)`.
+- `dS_1::Array{Float64, 2}`: Pre-damping torque term of size `(3, Nx)`.
+- `dS_2::Array{Float64, 2}`: Iterative total torque accumulator of size `(3, Nx)`.
 
 These arrays are preallocated and reused during RHS evaluations to avoid allocations.
 """
@@ -22,9 +22,9 @@ end
 Workspace buffers for the 2D Landau-Lifshitz-Gilbert solver.
 
 # Fields
-- `Beff::Array{Float64, 3}`: Effective magnetic field array of size (3, Nx, Ny).
-- `dS_1::Array{Float64, 3}`: Pre-damping torque term of size (3, Nx, Ny).
-- `dS_2::Array{Float64, 3}`: Iterative total torque accumulator of size (3, Nx, Ny).
+- `Beff::Array{Float64, 3}`: Effective magnetic field array of size `(3, Nx, Ny)`.
+- `dS_1::Array{Float64, 3}`: Pre-damping torque term of size `(3, Nx, Ny)`.
+- `dS_2::Array{Float64, 3}`: Iterative total torque accumulator of size `(3, Nx, Ny)`.
 """
 struct LLGFields2D
     Beff::Array{Float64, 3}
@@ -47,7 +47,7 @@ Parameters and precomputed data for a 1D LLG simulation with open boundary condi
 - `u_stt::Float64`: 1D spin-drift velocity used by the Zhang-Li spin-transfer torque.
 - `beta_stt::Float64`: Nonadiabatic spin-transfer-torque coefficient.
 - `ker_dx::Vector{Int}`: Relative site offsets for nonlocal damping kernel.
-- `Λtens::Array{Float64,3}`: Nonlocal damping tensor of size (3,3,n_offsets).
+- `Λtens::Array{Float64,3}`: Nonlocal damping tensor of size `(3, 3, n_offsets)`.
 - `fields::LLGFields1D`: Preallocated workspace buffers.
 - `stt_active::Bool`: Solver-controlled flag enabling the optional 1D STT term.
 - `stag::Bool`: Enable staggered (two-sublattice) nonlocal damping and field terms.
@@ -63,7 +63,7 @@ Parameters and precomputed data for a 1D LLG simulation with open boundary condi
 - `D`: defaults to `(0.0, 0.0, 0.0)`.
 - `u_stt`, `beta_stt`: default to zero so current-induced torques are absent.
 - `ker_dx`: defaults to an empty vector.
-- `Λtens`: defaults to a zero-sized `(3,3,0)` tensor.
+- `Λtens`: defaults to a zero-sized `(3, 3, 0)` tensor.
 """
 mutable struct LLGParams1D
     Nx::Int
@@ -75,7 +75,7 @@ mutable struct LLGParams1D
     u_stt::Float64
     beta_stt::Float64
     ker_dx::Vector{Int}
-    Λtens::Array{Float64,3}
+    Λtens::Array{Float64, 3}
     fields::LLGFields1D
     stt_active::Bool
     stag::Bool
@@ -93,17 +93,32 @@ mutable struct LLGParams1D
         u_stt::Float64 = 0.0,
         beta_stt::Float64 = 0.0,
         ker_dx::Vector{Int} = Int[],
-        Λtens::Array{Float64,3} = zeros(3,3,0)
+        Λtens::Array{Float64, 3} = zeros(3, 3, 0),
     )
-
         Beff = zeros(3, Nx)
         dS_1 = zeros(3, Nx)
         dS_2 = zeros(3, Nx)
 
         fields = LLGFields1D(Beff, dS_1, dS_2)
 
-        return new(Nx, J, D, K, B, αG, u_stt, beta_stt, ker_dx, Λtens, fields,
-                   false, false, 0.0, Int[], zeros(2,3,3,0))
+        return new(
+            Nx,
+            J,
+            D,
+            K,
+            B,
+            αG,
+            u_stt,
+            beta_stt,
+            ker_dx,
+            Λtens,
+            fields,
+            false,
+            false,
+            0.0,
+            Int[],
+            zeros(2, 3, 3, 0),
+        )
     end
 end
 
@@ -117,16 +132,21 @@ Parameters and precomputed data for a 2D LLG simulation with open boundaries.
 - `J`, `D`, `K`, `B`, `αG`: Exchange, directional nearest-neighbor DMI bond
   vectors for the x/y lattice directions, anisotropy, external field, and local
   damping.
+- `u_stt::NTuple{2, Float64}`: 2D spin-drift velocity `(u_x, u_y)` used by the
+  optional Zhang-Li spin-transfer torque.
+- `beta_stt::Float64`: Nonadiabatic spin-transfer-torque coefficient.
 - `ker_dx`, `ker_dy`: Relative offsets for nonlocal damping support.
 - `Λtens::Array{Float64,4}`: Nonlocal damping tensor `(a, b, kx, ky)`.
 - `fields::LLGFields2D`: Preallocated workspace buffers.
+- `stt_active::Bool`: Solver-controlled flag enabling the optional 2D STT term.
 - `stag`, `B_stag`, `ker_dx_stag`, `ker_dy_stag`, `Λtens_stag`: Optional
   two-sublattice staggered terms.
 
 # Constructor keywords
-- `D`: defaults to zero bond vectors `((0,0,0), (0,0,0))`.
+- `D`: defaults to zero bond vectors `((0.0, 0.0, 0.0), (0.0, 0.0, 0.0))`.
+- `u_stt`, `beta_stt`: default to zero so current-induced torques are absent.
 - `ker_dx`, `ker_dy`: default to empty vectors.
-- `Λtens`: defaults to a zero-sized `(3,3,0,0)` tensor.
+- `Λtens`: defaults to a zero-sized `(3, 3, 0, 0)` tensor.
 """
 mutable struct LLGParams2D
     Nx::Int
@@ -136,15 +156,18 @@ mutable struct LLGParams2D
     K::NTuple{3, Float64}
     B::NTuple{3, Float64}
     αG::Float64
+    u_stt::NTuple{2, Float64}
+    beta_stt::Float64
     ker_dx::Vector{Int}
     ker_dy::Vector{Int}
-    Λtens::Array{Float64,4}
+    Λtens::Array{Float64, 4}
     fields::LLGFields2D
+    stt_active::Bool
     stag::Bool
     B_stag::Float64
     ker_dx_stag::Vector{Int}
     ker_dy_stag::Vector{Int}
-    Λtens_stag::Array{Float64,5}
+    Λtens_stag::Array{Float64, 5}
 
     function LLGParams2D(
         Nx::Int,
@@ -154,18 +177,38 @@ mutable struct LLGParams2D
         B::NTuple{3, Float64},
         αG::Float64;
         D::NTuple{2, NTuple{3, Float64}} = ((0.0, 0.0, 0.0), (0.0, 0.0, 0.0)),
+        u_stt::NTuple{2, Float64} = (0.0, 0.0),
+        beta_stt::Float64 = 0.0,
         ker_dx::Vector{Int} = Int[],
         ker_dy::Vector{Int} = Int[],
-        Λtens::Array{Float64,4} = zeros(3,3,0,0)
+        Λtens::Array{Float64, 4} = zeros(3, 3, 0, 0),
     )
-
         Beff = zeros(3, Nx, Ny)
         dS_1 = zeros(3, Nx, Ny)
         dS_2 = zeros(3, Nx, Ny)
 
         fields = LLGFields2D(Beff, dS_1, dS_2)
 
-        return new(Nx, Ny, J, D, K, B, αG, ker_dx, ker_dy, Λtens, fields,
-                   false, 0.0, Int[], Int[], zeros(2,3,3,0,0))
+        return new(
+            Nx,
+            Ny,
+            J,
+            D,
+            K,
+            B,
+            αG,
+            u_stt,
+            beta_stt,
+            ker_dx,
+            ker_dy,
+            Λtens,
+            fields,
+            false,
+            false,
+            0.0,
+            Int[],
+            Int[],
+            zeros(2, 3, 3, 0, 0),
+        )
     end
 end
