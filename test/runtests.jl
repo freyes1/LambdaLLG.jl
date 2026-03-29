@@ -34,6 +34,79 @@ using LambdaLLG
     @test p.fields.Beff ≈ expected
 end
 
+@testset "1D spin-transfer torque" begin
+    spins = [
+        0.8  0.2  -0.4  -0.6;
+        0.1  0.9   0.3  -0.2;
+        0.6  0.4   0.85  0.77
+    ]
+    for i in 1:size(spins, 2)
+        spins[:, i] ./= norm(spins[:, i])
+    end
+
+    p = LLGParams1D(
+        size(spins, 2),
+        0.0,
+        (0.0, 0.0, 0.0),
+        (0.0, 0.0, 0.0),
+        0.0;
+        u_stt = 0.45,
+        beta_stt = 0.3,
+    )
+
+    fill!(p.fields.dS_1, 0.0)
+    LambdaLLG.add_stt1D!(spins, p)
+
+    expected = zeros(size(spins))
+
+    for i in 1:size(spins, 2)
+        grad = if i == 1
+            spins[:, 2] - spins[:, 1]
+        elseif i == size(spins, 2)
+            spins[:, end] - spins[:, end - 1]
+        else
+            0.5 .* (spins[:, i + 1] - spins[:, i - 1])
+        end
+
+        expected[:, i] .= -p.u_stt .* grad .+ p.beta_stt * p.u_stt .* cross(spins[:, i], grad)
+    end
+
+    @test isapprox(p.fields.dS_1, expected)
+end
+
+@testset "1D STT integrator flag" begin
+    spins = [
+        0.0   0.0   0.0   0.0   0.0;
+        0.2   0.6   1.0   0.6   0.2;
+       -0.98 -0.8   0.0   0.8   0.98
+    ]
+    for i in 1:size(spins, 2)
+        spins[:, i] ./= norm(spins[:, i])
+    end
+
+    p = LLGParams1D(
+        size(spins, 2),
+        0.0,
+        (0.0, 0.0, 0.0),
+        (0.0, 0.0, 0.0),
+        0.0;
+        u_stt = 0.25,
+        beta_stt = 0.2,
+    )
+
+    sol_off = evolve1D(copy(spins), (0.0, 0.2), p; reltol=1e-7, abstol=1e-7, stt=false)
+    @test p.stt_active == false
+
+    sol_on = evolve1D(copy(spins), (0.0, 0.2), p; reltol=1e-7, abstol=1e-7, stt=true)
+    @test p.stt_active == false
+
+    final_off = reshape(sol_off.u[end], size(spins))
+    final_on = reshape(sol_on.u[end], size(spins))
+
+    @test isapprox(final_off, spins; atol=1e-10, rtol=1e-10)
+    @test maximum(abs.(final_on .- final_off)) > 1e-5
+end
+
 @testset "2D bulk DMI" begin
     spins = zeros(3, 3, 4)
     spins[:, 1, 1] .= (0.1, -0.2, 0.7)

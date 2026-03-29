@@ -79,6 +79,58 @@ function add_B_stag1D!(spins::Array{Float64, 2}, p::LLGParams1D)
 end
 
 """
+    add_stt1D!(spins, p)
+
+Accumulate the 1D Zhang-Li spin-transfer torque directly into `p.fields.dS_1`. 
+Unlike other functions which accumulate into `p.fields.Beff`, stt goes
+directly into the time derivative because the adiabatic term is not of the 
+form s x b.
+
+The discrete spatial derivative uses centered differences in the bulk and
+one-sided differences at the open boundaries. The added torque is
+`-u_stt * ∂x s + beta_stt * u_stt * (s × ∂x s)`.
+The implementation assumes lattice-spacing units with `a = 1`.
+
+# References
+- Shufeng Zhang and Zhidong Li, "Roles of Nonequilibrium Conduction Electrons
+  on the Magnetization Dynamics of Ferromagnets," Phys. Rev. Lett. 93, 127204
+  (2004), https://doi.org/10.1103/PhysRevLett.93.127204.
+"""
+function add_stt1D!(spins::Array{Float64, 2}, p::LLGParams1D)
+    if p.Nx == 1 || p.u_stt == 0.0
+        return nothing
+    end
+
+    prefactor = p.beta_stt * p.u_stt
+
+    @inbounds for i = 1:p.Nx
+        if i == 1
+            dSx = spins[1, 2] - spins[1, 1]
+            dSy = spins[2, 2] - spins[2, 1]
+            dSz = spins[3, 2] - spins[3, 1]
+        elseif i == p.Nx
+            dSx = spins[1, p.Nx] - spins[1, p.Nx - 1]
+            dSy = spins[2, p.Nx] - spins[2, p.Nx - 1]
+            dSz = spins[3, p.Nx] - spins[3, p.Nx - 1]
+        else
+            dSx = 0.5 * (spins[1, i + 1] - spins[1, i - 1])
+            dSy = 0.5 * (spins[2, i + 1] - spins[2, i - 1])
+            dSz = 0.5 * (spins[3, i + 1] - spins[3, i - 1])
+        end
+
+        tx = spins[2, i] * dSz - spins[3, i] * dSy
+        ty = spins[3, i] * dSx - spins[1, i] * dSz
+        tz = spins[1, i] * dSy - spins[2, i] * dSx
+
+        p.fields.dS_1[1, i] += -p.u_stt * dSx + prefactor * tx
+        p.fields.dS_1[2, i] += -p.u_stt * dSy + prefactor * ty
+        p.fields.dS_1[3, i] += -p.u_stt * dSz + prefactor * tz
+    end
+
+    return nothing
+end
+
+"""
     add_gilbert1D!(spins, p)
 
 Accumulates local Gilbert damping contributions based on the current `dS_2`.
@@ -172,6 +224,7 @@ function rhs1D!(spins::Array{Float64, 2}, p::LLGParams1D, t::Float64)
     @inbounds for i = 1:p.Nx
         @views cross_inplace!(p.fields.dS_1[:,i], spins[:,i], p.fields.Beff[:,i])
     end
+    if p.stt_active add_stt1D!(spins, p) end
 
     p.fields.dS_2 .= p.fields.dS_1
 

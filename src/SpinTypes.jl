@@ -44,9 +44,12 @@ Parameters and precomputed data for a 1D LLG simulation with open boundary condi
 - `K::NTuple{3, Float64}`: On-site anisotropy vector.
 - `B::NTuple{3, Float64}`: External magnetic field.
 - `αG::Float64`: Local Gilbert damping constant.
+- `u_stt::Float64`: 1D spin-drift velocity used by the Zhang-Li spin-transfer torque.
+- `beta_stt::Float64`: Nonadiabatic spin-transfer-torque coefficient.
 - `ker_dx::Vector{Int}`: Relative site offsets for nonlocal damping kernel.
 - `Λtens::Array{Float64,3}`: Nonlocal damping tensor of size (3,3,n_offsets).
 - `fields::LLGFields1D`: Preallocated workspace buffers.
+- `stt_active::Bool`: Solver-controlled flag enabling the optional 1D STT term.
 - `stag::Bool`: Enable staggered (two-sublattice) nonlocal damping and field terms.
 - `B_stag::Float64`: Staggered field amplitude in the z-direction.
 - `ker_dx_stag::Vector{Int}`: Relative offsets for staggered kernel.
@@ -55,6 +58,12 @@ Parameters and precomputed data for a 1D LLG simulation with open boundary condi
 # Notes
 - Open boundary conditions are assumed.
 - Translation invariance is assumed for the nonlocal kernel.
+
+# Constructor keywords
+- `D`: defaults to `(0.0, 0.0, 0.0)`.
+- `u_stt`, `beta_stt`: default to zero so current-induced torques are absent.
+- `ker_dx`: defaults to an empty vector.
+- `Λtens`: defaults to a zero-sized `(3,3,0)` tensor.
 """
 mutable struct LLGParams1D
     Nx::Int
@@ -63,9 +72,12 @@ mutable struct LLGParams1D
     K::NTuple{3, Float64}
     B::NTuple{3, Float64}
     αG::Float64
+    u_stt::Float64
+    beta_stt::Float64
     ker_dx::Vector{Int}
     Λtens::Array{Float64,3}
     fields::LLGFields1D
+    stt_active::Bool
     stag::Bool
     B_stag::Float64
     ker_dx_stag::Vector{Int}
@@ -78,6 +90,8 @@ mutable struct LLGParams1D
         B::NTuple{3, Float64},
         αG::Float64;
         D::NTuple{3, Float64} = (0.0, 0.0, 0.0),
+        u_stt::Float64 = 0.0,
+        beta_stt::Float64 = 0.0,
         ker_dx::Vector{Int} = Int[],
         Λtens::Array{Float64,3} = zeros(3,3,0)
     )
@@ -88,8 +102,8 @@ mutable struct LLGParams1D
 
         fields = LLGFields1D(Beff, dS_1, dS_2)
 
-        return new(Nx, J, D, K, B, αG, ker_dx, Λtens, fields,
-                   false, 0.0, Int[], zeros(2,3,3,0))
+        return new(Nx, J, D, K, B, αG, u_stt, beta_stt, ker_dx, Λtens, fields,
+                   false, false, 0.0, Int[], zeros(2,3,3,0))
     end
 end
 

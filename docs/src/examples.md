@@ -4,6 +4,7 @@
 
 - `examples/LambdaLLG_1D_quickstart.ipynb`
 - `examples/LambdaLLG_1D_Bloch_domain_wall.ipynb`
+- `examples/LambdaLLG_1D_STT_domain_wall.ipynb`
 - `examples/LambdaLLG_2D_DMI_skyrmion_test.ipynb`
 - `examples/LambdaLLG_2D_quickstart.ipynb`
 - `LambdaLLG_examples.ipynb` (index notebook linking both quickstarts)
@@ -12,7 +13,7 @@
 
 1. Build `LLGParams1D` with exchange/anisotropy/field/damping settings.
 2. Prepare `s0` as a `3 x Nx` matrix of unit spin vectors.
-3. Run `evolve1D(s0, tspan, p)`.
+3. Run `evolve1D(s0, tspan, p)` or `evolve1D(s0, tspan, p; stt=true)` when using the optional 1D spin-transfer torque.
 4. Convert output with `format_results(sol)` or post-process `sol.u` directly.
 
 ## Typical 2D workflow

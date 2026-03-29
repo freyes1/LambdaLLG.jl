@@ -2,12 +2,14 @@
 
 `LambdaLLG.jl` integrates Landau-Lifshitz-Gilbert (LLG) spin dynamics in 1D and 2D,
 including local Gilbert damping, optional nonlocal damping kernels, bulk DMI
-terms in 1D, and directional nearest-neighbor DMI terms in 2D.
+terms in 1D, optional 1D spin-transfer torque, and directional nearest-neighbor
+DMI terms in 2D.
 
 ## Features
 
 - 1D and 2D lattice LLG evolution with open boundaries.
 - 1D bulk DMI with a translationally invariant bond vector.
+- Optional 1D Zhang-Li spin-transfer torque for current-driven dynamics.
 - 2D translationally invariant nearest-neighbor DMI with independent x/y bond
   vectors, covering bulk and interface conventions.
 - Local and nonlocal damping terms.
