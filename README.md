@@ -77,6 +77,23 @@ julia --project=docs -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate(); in
 - `examples/LambdaLLG_2D_DMI_skyrmion_test.ipynb`
 - `examples/LambdaLLG_2D_quickstart.ipynb`
 
+## Initial states
+
+You can build common initial textures directly in the package and then relax
+them with the solver:
+
+```julia
+using LambdaLLG
+
+s0 = uniform_state2D(101, 101; direction=(0.0, 0.0, 1.0))
+paint_skyrmion!(s0; center=(51.0, 51.0), radius=12.0, width=3.0, skyrmion_type=:neel)
+paint_domain_wall!(s0; center=(70.0, 51.0), width=4.0, normal=(1.0, 0.0), wall_type=:bloch)
+normalize_spins!(s0)
+```
+
+The same workflow is available in 1D with `uniform_state1D` and
+`paint_domain_wall!`.
+
 ## Notes
 
 - Spins are renormalized at every callback step during integration.

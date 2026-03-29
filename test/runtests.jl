@@ -31,7 +31,7 @@ using LambdaLLG
         expected[:, i] .= cross(Dvec, right - left)
     end
 
-    @test p.fields.Beff ≈ expected
+    @test isapprox(p.fields.Beff, expected)
 end
 
 @testset "1D spin-transfer torque" begin
@@ -94,16 +94,16 @@ end
         beta_stt = 0.2,
     )
 
-    sol_off = evolve1D(copy(spins), (0.0, 0.2), p; reltol=1e-7, abstol=1e-7, stt=false)
+    sol_off = evolve1D(copy(spins), (0.0, 0.2), p; reltol = 1e-7, abstol = 1e-7, stt = false)
     @test p.stt_active == false
 
-    sol_on = evolve1D(copy(spins), (0.0, 0.2), p; reltol=1e-7, abstol=1e-7, stt=true)
+    sol_on = evolve1D(copy(spins), (0.0, 0.2), p; reltol = 1e-7, abstol = 1e-7, stt = true)
     @test p.stt_active == false
 
     final_off = reshape(sol_off.u[end], size(spins))
     final_on = reshape(sol_on.u[end], size(spins))
 
-    @test isapprox(final_off, spins; atol=1e-10, rtol=1e-10)
+    @test isapprox(final_off, spins; atol = 1e-10, rtol = 1e-10)
     @test maximum(abs.(final_on .- final_off)) > 1e-5
 end
 
@@ -150,7 +150,7 @@ end
         end
     end
 
-    @test p.fields.Beff ≈ expected
+    @test isapprox(p.fields.Beff, expected)
 end
 
 @testset "2D interface DMI" begin
@@ -197,5 +197,111 @@ end
         end
     end
 
-    @test p.fields.Beff ≈ expected
+    @test isapprox(p.fields.Beff, expected)
+end
+
+@testset "Initial-state constructors and normalization" begin
+    direction = [1.0, 2.0, -2.0]
+    direction ./= norm(direction)
+
+    spins1D = uniform_state1D(5; direction = (1.0, 2.0, -2.0), magnitude = 2.5)
+    @test size(spins1D) == (3, 5)
+    for i in 1:size(spins1D, 2)
+        @test isapprox(spins1D[:, i], 2.5 .* direction)
+    end
+
+    spins2D = uniform_state2D(4, 3; direction = (1.0, 2.0, -2.0))
+    @test size(spins2D) == (3, 4, 3)
+    for j in 1:size(spins2D, 3), i in 1:size(spins2D, 2)
+        @test isapprox(spins2D[:, i, j], direction)
+    end
+
+    normalize_spins!(spins1D)
+    normalize_spins!(spins2D)
+
+    for i in 1:size(spins1D, 2)
+        @test isapprox(norm(spins1D[:, i]), 1.0)
+    end
+    for j in 1:size(spins2D, 3), i in 1:size(spins2D, 2)
+        @test isapprox(norm(spins2D[:, i, j]), 1.0)
+    end
+end
+
+@testset "1D domain-wall painter" begin
+    spins = uniform_state1D(41; direction = (0.0, 0.0, 1.0))
+
+    paint_domain_wall!(
+        spins;
+        center = 21.0,
+        width = 3.0,
+        wall_type = :neel,
+        reference_axis = (1.0, 0.0, 0.0),
+    )
+    normalize_spins!(spins)
+
+    @test spins[3, 1] < -0.999
+    @test abs(spins[1, 1]) < 0.01
+    @test abs(spins[2, 1]) < 0.01
+    @test spins[3, end] > 0.999
+    @test abs(spins[1, end]) < 0.01
+    @test abs(spins[2, end]) < 0.01
+    @test isapprox(spins[:, 21], [1.0, 0.0, 0.0]; atol = 1e-6)
+
+    for i in 1:size(spins, 2)
+        @test isapprox(norm(spins[:, i]), 1.0; atol = 1e-12)
+    end
+end
+
+@testset "2D painters" begin
+    wall_state = uniform_state2D(31, 15; direction = (0.0, 0.0, 1.0))
+
+    paint_domain_wall!(
+        wall_state;
+        center = (16.0, 8.0),
+        width = 2.5,
+        normal = (1.0, 0.0),
+        wall_type = :bloch,
+        reference_axis = (1.0, 0.0, 0.0),
+    )
+    normalize_spins!(wall_state)
+
+    @test wall_state[3, 1, 8] < -0.999
+    @test abs(wall_state[1, 1, 8]) < 0.01
+    @test abs(wall_state[2, 1, 8]) < 0.01
+    @test wall_state[3, end, 8] > 0.999
+    @test abs(wall_state[1, end, 8]) < 0.01
+    @test abs(wall_state[2, end, 8]) < 0.01
+    @test isapprox(wall_state[:, 16, 8], [0.0, 1.0, 0.0]; atol = 1e-6)
+
+    skyrmion_state = uniform_state2D(41, 41; direction = (0.0, 0.0, 1.0))
+    paint_skyrmion!(
+        skyrmion_state;
+        center = (15.0, 21.0),
+        radius = 6.0,
+        width = 1.5,
+        skyrmion_type = :neel,
+        reference_axis = (1.0, 0.0, 0.0),
+    )
+    paint_skyrmion!(
+        skyrmion_state;
+        center = (29.0, 21.0),
+        radius = 6.0,
+        width = 1.5,
+        skyrmion_type = :bloch,
+        reference_axis = (1.0, 0.0, 0.0),
+        chirality = -1.0,
+    )
+    normalize_spins!(skyrmion_state)
+
+    @test skyrmion_state[3, 15, 21] < -0.999
+    @test abs(skyrmion_state[1, 15, 21]) < 0.02
+    @test abs(skyrmion_state[2, 15, 21]) < 0.02
+    @test skyrmion_state[3, 29, 21] < -0.999
+    @test abs(skyrmion_state[1, 29, 21]) < 0.02
+    @test abs(skyrmion_state[2, 29, 21]) < 0.02
+    @test skyrmion_state[3, 1, 1] > 0.99
+
+    for j in 1:size(skyrmion_state, 3), i in 1:size(skyrmion_state, 2)
+        @test isapprox(norm(skyrmion_state[:, i, j]), 1.0; atol = 1e-12)
+    end
 end

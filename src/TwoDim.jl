@@ -213,16 +213,7 @@ in the DiscreteCallback during time integration.
 """
 function normalize_spins2D!(u, p, t; verbose=false)
     spins = reshape(u, 3, p.Nx, p.Ny)
-
-    @threads for j in 1:p.Ny
-        @inbounds for i in 1:p.Nx
-            n = sqrt(spins[1,i,j]^2 + spins[2,i,j]^2 + spins[3,i,j]^2)
-            for c in 1:3
-                spins[c,i,j] /= n
-            end
-        end
-    end
-    
+    normalize_spins!(spins)
     if verbose println("time is $t"); flush(stdout) end
 end
     
