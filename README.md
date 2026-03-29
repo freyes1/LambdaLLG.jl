@@ -76,23 +76,59 @@ julia --project=docs -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate(); in
 - `examples/LambdaLLG_1D_quickstart.ipynb`
 - `examples/LambdaLLG_2D_DMI_skyrmion_test.ipynb`
 - `examples/LambdaLLG_2D_quickstart.ipynb`
+- `examples/LambdaLLG_seed_relaxation_examples.ipynb`
 
-## Initial states
+## Uniform seeds
 
-You can build common initial textures directly in the package and then relax
-them with the solver:
+You can build uniformly magnetized starting configurations directly in the
+package:
 
 ```julia
 using LambdaLLG
 
-s0 = uniform_state2D(101, 101; direction=(0.0, 0.0, 1.0))
-paint_skyrmion!(s0; center=(51.0, 51.0), radius=12.0, width=3.0, skyrmion_type=:neel)
-paint_domain_wall!(s0; center=(70.0, 51.0), width=4.0, normal=(1.0, 0.0), wall_type=:bloch)
-normalize_spins!(s0)
+s1 = uniform_seed1D(101; direction=(0.0, 0.0, 1.0))
+s2 = uniform_seed2D(101, 101; direction=(0.0, 0.0, 1.0))
+
+paint_domain_wall1D!(
+    s1;
+    center=51.0,
+    width=4.0,
+    domain_direction=(0.0, 0.0, 1.0),
+    wall_normal=(0.0, 1.0, 0.0),
+)
+normalize_spins!(s1)
+
+paint_domain_wall2D!(
+    s2;
+    point=(51.0, 51.0),
+    slope=0.5,
+    width=4.0,
+    domain_direction=(0.0, 0.0, 1.0),
+    wall_normal=(1.0, 0.0, 0.0),
+)
+normalize_spins!(s2)
+
+paint_skyrmion2D!(
+    s2;
+    center=(51.0, 51.0),
+    radius=12.0,
+    width=3.0,
+    center_direction=-1,
+    helicity=pi / 2,
+    vorticity=1.0,
+)
+normalize_spins!(s2)
 ```
 
-The same workflow is available in 1D with `uniform_state1D` and
-`paint_domain_wall!`.
+Use `normalize_spins!` if you modify a seed in-place before passing it to the
+solver. The 1D domain-wall painter is additive, so you can paint multiple walls
+onto the same uniform background before normalizing. Reverse
+`domain_direction` to flip which domain points "up" or "down".
+In 2D, `wall_normal = (1, 0, 0)` means local front-normal (Neel-like) and
+`wall_normal = (0, 1, 0)` means local along-wall (Bloch-like).
+For skyrmions, `helicity = 0` gives a Neel-type texture and `helicity = pi / 2`
+gives a Bloch-type texture when `center_direction = -1`, so the
+background points along `+z`.
 
 ## Notes
 

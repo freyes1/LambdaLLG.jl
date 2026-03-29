@@ -13,12 +13,14 @@ import DifferentialEquations as DE
 export evolve1D, evolve2D
 export LLGParams1D, LLGParams2D
 export format_results
-export uniform_state1D, uniform_state2D
+export uniform_seed1D, uniform_seed2D
+export paint_domain_wall1D!
+export paint_domain_wall2D!
+export paint_skyrmion2D!
 export normalize_spins!
-export paint_domain_wall!
 
 include("SpinTypes.jl")
-include("InitialStates.jl")
+include("Seeds.jl")
 include("OneDim.jl")
 include("TwoDim.jl")
 include("Solvers.jl")

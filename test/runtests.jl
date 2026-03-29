@@ -123,97 +123,225 @@ end
     @test isapprox(p.fields.Beff, expected)
 end
 
-@testset "Uniform states and normalization" begin
-    spins1D = uniform_state1D(5; direction = (1.0, 2.0, -2.0))
+@testset "Uniform magnetized seeds" begin
+    spins1D = uniform_seed1D(5; direction = (1.0, 2.0, -2.0))
     expected1D = [1.0, 2.0, -2.0] ./ norm([1.0, 2.0, -2.0])
     for i in 1:5
         @test isapprox(spins1D[:, i], expected1D)
     end
 
-    spins2D = uniform_state2D(4, 3; direction = (0.0, 3.0, 4.0))
+    spins2D = uniform_seed2D(4, 3; direction = (0.0, 3.0, 4.0))
     expected2D = [0.0, 3.0, 4.0] ./ norm([0.0, 3.0, 4.0])
     for j in 1:3, i in 1:4
         @test isapprox(spins2D[:, i, j], expected2D)
     end
 
-    raw = 3.0 .* copy(spins2D)
-    normalize_spins!(raw)
-    for j in 1:3, i in 1:4
-        @test isapprox(norm(raw[:, i, j]), 1.0)
-        @test isapprox(raw[:, i, j], expected2D)
-    end
+    @test size(spins1D) == (3, 5)
+    @test size(spins2D) == (3, 4, 3)
+
+    @test_throws ArgumentError uniform_seed1D(0)
+    @test_throws ArgumentError uniform_seed2D(4, 0)
+    @test_throws ArgumentError uniform_seed1D(4; direction = (0.0, 0.0, 0.0))
 end
 
-@testset "2D straight domain wall state" begin
-    horizontal = uniform_state2D(13, 11; direction = (0.0, 0.0, 1.0))
-    paint_domain_wall!(
-        horizontal;
+@testset "1D domain-wall painter" begin
+    neel = uniform_seed1D(13; direction = (0.0, 0.0, 1.0))
+    paint_domain_wall1D!(
+        neel;
+        center = 7.0,
+        width = 1.5,
+        domain_direction = (0.0, 0.0, 1.0),
+        wall_normal = (1.0, 0.0, 0.0),
+    )
+    normalize_spins!(neel)
+
+    @test neel[3, 3] < -0.95
+    @test neel[3, 11] > 0.95
+    @test neel[1, 7] > 0.99
+    @test abs(neel[2, 7]) < 1e-12
+
+    bloch = uniform_seed1D(13; direction = (0.0, 0.0, 1.0))
+    paint_domain_wall1D!(
+        bloch;
+        center = 7.0,
+        width = 1.5,
+        domain_direction = (0.0, 0.0, 1.0),
+        wall_normal = (0.0, 1.0, 0.0),
+    )
+    normalize_spins!(bloch)
+
+    @test bloch[3, 3] < -0.95
+    @test bloch[3, 11] > 0.95
+    @test abs(bloch[1, 7]) < 1e-12
+    @test bloch[2, 7] > 0.99
+
+    tilted = uniform_seed1D(11; direction = (1.0, 1.0, 0.0))
+    paint_domain_wall1D!(
+        tilted;
+        center = 6.0,
+        width = 1.2,
+        domain_direction = (1.0, 1.0, 0.0),
+        wall_normal = (1.0, 0.0, 1.0),
+    )
+    normalize_spins!(tilted)
+
+    domain = [1.0, 1.0, 0.0] ./ norm([1.0, 1.0, 0.0])
+    @test isapprox(dot(tilted[:, 2], domain), -1.0; atol = 5e-2)
+    @test isapprox(dot(tilted[:, 10], domain), 1.0; atol = 5e-2)
+
+    layered = uniform_seed1D(21; direction = (0.0, 0.0, 1.0))
+    paint_domain_wall1D!(layered; center = 7.0, width = 1.5, wall_normal = (1.0, 0.0, 0.0))
+    paint_domain_wall1D!(layered; center = 15.0, width = 1.5, domain_direction = (0.0, 0.0, -1.0), wall_normal = (1.0, 0.0, 0.0))
+    layered_norm_error = maximum(abs(norm(layered[:, i]) - 1.0) for i in axes(layered, 2))
+    @test layered_norm_error > 1e-3
+    normalize_spins!(layered)
+    @test all(isapprox(norm(layered[:, i]), 1.0; atol = 1e-12) for i in axes(layered, 2))
+
+    bad = uniform_seed1D(5)
+    @test_throws ArgumentError paint_domain_wall1D!(bad; width = 0.0)
+    @test_throws ArgumentError paint_domain_wall1D!(bad; wall_normal = (0.0, 0.0, 2.0))
+end
+
+@testset "2D domain-wall painter" begin
+    horizontal_neel = uniform_seed2D(13, 11; direction = (0.0, 0.0, 1.0))
+    paint_domain_wall2D!(
+        horizontal_neel;
         point = (7.0, 6.0),
         slope = 0.0,
         width = 1.5,
-        wall_type = :bloch,
-        reference_axis = (1.0, 0.0, 0.0),
+        domain_direction = (0.0, 0.0, 1.0),
+        wall_normal = (1.0, 0.0, 0.0),
     )
-    normalize_spins!(horizontal)
+    normalize_spins!(horizontal_neel)
 
-    @test horizontal[3, 7, 2] < -0.95
-    @test horizontal[3, 7, 10] > 0.95
-    @test abs(horizontal[1, 7, 6]) < 1e-10
-    @test horizontal[2, 7, 6] > 0.99
+    @test horizontal_neel[3, 7, 2] < -0.95
+    @test horizontal_neel[3, 7, 10] > 0.95
+    @test abs(horizontal_neel[1, 7, 6]) < 1e-12
+    @test horizontal_neel[2, 7, 6] > 0.99
 
-    sloped = uniform_state2D(13, 13; direction = (0.0, 0.0, 1.0))
-    paint_domain_wall!(
+    horizontal_bloch = uniform_seed2D(13, 11; direction = (0.0, 0.0, 1.0))
+    paint_domain_wall2D!(
+        horizontal_bloch;
+        point = (7.0, 6.0),
+        slope = 0.0,
+        width = 1.5,
+        domain_direction = (0.0, 0.0, 1.0),
+        wall_normal = (0.0, 1.0, 0.0),
+    )
+    normalize_spins!(horizontal_bloch)
+
+    @test horizontal_bloch[1, 7, 6] > 0.99
+    @test abs(horizontal_bloch[2, 7, 6]) < 1e-12
+
+    vertical_neel = uniform_seed2D(13, 11; direction = (0.0, 0.0, 1.0))
+    paint_domain_wall2D!(
+        vertical_neel;
+        point = (7.0, 5.0),
+        slope = Inf,
+        width = 1.5,
+        domain_direction = (0.0, 0.0, 1.0),
+        wall_normal = (1.0, 0.0, 0.0),
+    )
+    normalize_spins!(vertical_neel)
+
+    @test vertical_neel[3, 3, 5] < -0.95
+    @test vertical_neel[3, 11, 5] > 0.95
+    @test vertical_neel[1, 7, 5] > 0.99
+    @test abs(vertical_neel[2, 7, 5]) < 1e-12
+
+    sloped = uniform_seed2D(13, 13; direction = (0.0, 0.0, 1.0))
+    paint_domain_wall2D!(
         sloped;
         point = (6.0, 6.0),
         slope = 1.0,
         width = 1.5,
-        wall_type = :neel,
-        reference_axis = (1.0, 0.0, 0.0),
+        domain_direction = (0.0, 0.0, 1.0),
+        wall_normal = (1.0, 0.0, 0.0),
     )
     normalize_spins!(sloped)
 
-    @test sloped[1, 6, 6] > 0.99
+    expected_center = [-1.0, 1.0, 0.0] ./ sqrt(2.0)
+    @test isapprox(sloped[:, 6, 6], expected_center; atol = 1e-12)
     @test sloped[3, 4, 8] > 0.95
     @test sloped[3, 8, 4] < -0.95
 
-    vertical = uniform_state2D(13, 11; direction = (0.0, 0.0, 1.0))
-    paint_domain_wall!(
-        vertical;
-        point = (7.0, 5.0),
-        slope = Inf,
-        width = 1.5,
-        wall_type = :neel,
-        reference_axis = (1.0, 0.0, 0.0),
-    )
-    normalize_spins!(vertical)
-
-    @test vertical[3, 3, 5] < -0.95
-    @test vertical[3, 11, 5] > 0.95
-    @test vertical[1, 7, 5] > 0.99
-
-    layered = uniform_state2D(13, 11; direction = (0.0, 0.0, 1.0))
-    paint_domain_wall!(
-        layered;
-        point = (7.0, 4.0),
-        slope = 0.0,
-        width = 1.5,
-        wall_type = :bloch,
-        reference_axis = (1.0, 0.0, 0.0),
-    )
-    paint_domain_wall!(
-        layered;
-        point = (7.0, 8.0),
-        slope = 0.0,
-        width = 1.5,
-        wall_type = :bloch,
-        reference_axis = (1.0, 0.0, 0.0),
-        chirality = -1.0,
-    )
-
+    layered = uniform_seed2D(13, 11; direction = (0.0, 0.0, 1.0))
+    paint_domain_wall2D!(layered; point = (7.0, 4.0), slope = 0.0, width = 1.5, wall_normal = (1.0, 0.0, 0.0))
+    paint_domain_wall2D!(layered; point = (7.0, 8.0), slope = 0.0, width = 1.5, domain_direction = (0.0, 0.0, -1.0), wall_normal = (1.0, 0.0, 0.0))
     layered_norm_error = maximum(abs(norm(layered[:, i, j]) - 1.0) for j in axes(layered, 3), i in axes(layered, 2))
     @test layered_norm_error > 1e-3
     normalize_spins!(layered)
     @test all(isapprox(norm(layered[:, i, j]), 1.0; atol = 1e-12) for j in axes(layered, 3), i in axes(layered, 2))
+
+    bad = uniform_seed2D(5, 5)
+    @test_throws ArgumentError paint_domain_wall2D!(bad; width = 0.0)
+    @test_throws ArgumentError paint_domain_wall2D!(bad; wall_normal = (0.0, 0.0, 2.0))
+end
+
+@testset "2D skyrmion painter" begin
+    neel = uniform_seed2D(41, 41; direction = (0.0, 0.0, 1.0))
+    paint_skyrmion2D!(
+        neel;
+        center = (21.0, 21.0),
+        radius = 8.0,
+        width = 2.0,
+        center_direction = -1.0,
+        helicity = 0.0,
+        vorticity = 1.0,
+    )
+    normalize_spins!(neel)
+
+    @test neel[3, 21, 21] < -0.99
+    @test neel[3, 21, 1] > 0.99
+    @test neel[1, 29, 21] > 0.95
+    @test abs(neel[2, 29, 21]) < 1e-12
+    @test neel[2, 21, 29] > 0.95
+    @test abs(neel[1, 21, 29]) < 1e-12
+
+    bloch = uniform_seed2D(41, 41; direction = (0.0, 0.0, 1.0))
+    paint_skyrmion2D!(
+        bloch;
+        center = (21.0, 21.0),
+        radius = 8.0,
+        width = 2.0,
+        center_direction = -1.0,
+        helicity = pi / 2,
+        vorticity = 1.0,
+    )
+    normalize_spins!(bloch)
+
+    @test abs(bloch[1, 29, 21]) < 1e-12
+    @test bloch[2, 29, 21] > 0.95
+    @test bloch[1, 21, 29] < -0.95
+    @test abs(bloch[2, 21, 29]) < 1e-12
+
+    reverse_bg = uniform_seed2D(41, 41; direction = (0.0, 0.0, -1.0))
+    paint_skyrmion2D!(
+        reverse_bg;
+        center = (21.0, 21.0),
+        radius = 8.0,
+        width = 2.0,
+        center_direction = 1.0,
+        helicity = 0.0,
+        vorticity = 1.0,
+    )
+    normalize_spins!(reverse_bg)
+
+    @test reverse_bg[3, 21, 21] > 0.99
+    @test reverse_bg[3, 21, 1] < -0.99
+
+    layered = uniform_seed2D(61, 61; direction = (0.0, 0.0, 1.0))
+    paint_skyrmion2D!(layered; center = (21.0, 31.0), radius = 7.0, width = 2.0, center_direction = -1.0, helicity = 0.0, vorticity = 1.0)
+    paint_skyrmion2D!(layered; center = (41.0, 31.0), radius = 7.0, width = 2.0, center_direction = -1.0, helicity = pi / 2, vorticity = -1.0)
+    layered_norm_error = maximum(abs(norm(layered[:, i, j]) - 1.0) for j in axes(layered, 3), i in axes(layered, 2))
+    @test layered_norm_error > 1e-3
+    normalize_spins!(layered)
+    @test all(isapprox(norm(layered[:, i, j]), 1.0; atol = 1e-12) for j in axes(layered, 3), i in axes(layered, 2))
+
+    bad = uniform_seed2D(5, 5)
+    @test_throws ArgumentError paint_skyrmion2D!(bad; radius = -1.0)
+    @test_throws ArgumentError paint_skyrmion2D!(bad; width = 0.0)
+    @test_throws ArgumentError paint_skyrmion2D!(bad; center_direction = 0.0)
 end
 
 @testset "2D spin-transfer torque" begin

@@ -8,6 +8,7 @@
 - `examples/LambdaLLG_2D_DMI_skyrmion_test.ipynb`
 - `examples/LambdaLLG_2D_STT_skyrmion_motion.ipynb`
 - `examples/LambdaLLG_2D_quickstart.ipynb`
+- `examples/LambdaLLG_seed_relaxation_examples.ipynb`
 - `LambdaLLG_examples.ipynb` (index notebook linking both quickstarts)
 
 ## Typical 1D workflow
