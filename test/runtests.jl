@@ -191,11 +191,21 @@ end
 
     layered = uniform_seed1D(21; direction = (0.0, 0.0, 1.0))
     paint_domain_wall1D!(layered; center = 7.0, width = 1.5, wall_normal = (1.0, 0.0, 0.0))
-    paint_domain_wall1D!(layered; center = 15.0, width = 1.5, domain_direction = (0.0, 0.0, -1.0), wall_normal = (1.0, 0.0, 0.0))
+    paint_domain_wall1D!(
+        layered;
+        center = 15.0,
+        width = 1.5,
+        domain_direction = (0.0, 0.0, -1.0),
+        wall_normal = (1.0, 0.0, 0.0),
+        background_direction = (0.0, 0.0, 1.0),
+    )
     layered_norm_error = maximum(abs(norm(layered[:, i]) - 1.0) for i in axes(layered, 2))
     @test layered_norm_error > 1e-3
     normalize_spins!(layered)
     @test all(isapprox(norm(layered[:, i]), 1.0; atol = 1e-12) for i in axes(layered, 2))
+    @test layered[3, 3] < -0.95
+    @test layered[3, 11] > 0.95
+    @test layered[3, 19] < -0.95
 
     bad = uniform_seed1D(5)
     @test_throws ArgumentError paint_domain_wall1D!(bad; width = 0.0)
@@ -265,13 +275,24 @@ end
     @test sloped[3, 4, 8] > 0.95
     @test sloped[3, 8, 4] < -0.95
 
-    layered = uniform_seed2D(13, 11; direction = (0.0, 0.0, 1.0))
-    paint_domain_wall2D!(layered; point = (7.0, 4.0), slope = 0.0, width = 1.5, wall_normal = (1.0, 0.0, 0.0))
-    paint_domain_wall2D!(layered; point = (7.0, 8.0), slope = 0.0, width = 1.5, domain_direction = (0.0, 0.0, -1.0), wall_normal = (1.0, 0.0, 0.0))
+    layered = uniform_seed2D(21, 21; direction = (0.0, 0.0, 1.0))
+    paint_domain_wall2D!(layered; point = (11.0, 6.0), slope = 0.0, width = 1.5, wall_normal = (1.0, 0.0, 0.0))
+    paint_domain_wall2D!(
+        layered;
+        point = (11.0, 16.0),
+        slope = 0.0,
+        width = 1.5,
+        domain_direction = (0.0, 0.0, -1.0),
+        wall_normal = (1.0, 0.0, 0.0),
+        background_direction = (0.0, 0.0, 1.0),
+    )
     layered_norm_error = maximum(abs(norm(layered[:, i, j]) - 1.0) for j in axes(layered, 3), i in axes(layered, 2))
     @test layered_norm_error > 1e-3
     normalize_spins!(layered)
     @test all(isapprox(norm(layered[:, i, j]), 1.0; atol = 1e-12) for j in axes(layered, 3), i in axes(layered, 2))
+    @test layered[3, 11, 2] < -0.95
+    @test layered[3, 11, 11] > 0.95
+    @test layered[3, 11, 20] < -0.95
 
     bad = uniform_seed2D(5, 5)
     @test_throws ArgumentError paint_domain_wall2D!(bad; width = 0.0)

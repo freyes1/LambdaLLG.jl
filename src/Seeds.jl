@@ -48,6 +48,7 @@ end
         width=5.0,
         domain_direction=(0.0, 0.0, 1.0),
         wall_normal=(1.0, 0.0, 0.0),
+        background_direction=nothing,
     )
 
 Paint a 1D domain wall in-place on top of a uniformly magnetized background.
@@ -59,10 +60,10 @@ domain direction. For example, with `domain_direction = (0, 0, 1)`,
 a Bloch wall.
 
 This modifier is additive, so it is intended to be applied to a mostly uniform
-state, possibly multiple times, followed by [`normalize_spins!`](@ref). This is
-why the domain direction is substracted at the end, to account for that uniformly
-magnetized seed. If that state does not align with the domain direction strange
-results might follow
+state, possibly multiple times, followed by [`normalize_spins!`](@ref). The
+painted wall profile is corrected by subtracting `background_direction`, which
+defaults to `domain_direction`. When painting multiple walls on the same seed,
+set `background_direction` to the original uniform seed direction.
 """
 function paint_domain_wall1D!(
     spins::AbstractArray{<:AbstractFloat, 2};
@@ -70,11 +71,13 @@ function paint_domain_wall1D!(
     width::Real = 5.0,
     domain_direction = (0.0, 0.0, 1.0),
     wall_normal = (1.0, 0.0, 0.0),
+    background_direction = nothing,
 )
     size(spins, 1) == 3 || throw(ArgumentError("Expected a spin array of size (3, Nx)."))
     width > 0 || throw(ArgumentError("width must be positive."))
 
     dx, dy, dz = _normalized_direction(domain_direction)
+    bx, by, bz = isnothing(background_direction) ? (dx, dy, dz) : _normalized_direction(background_direction)
     wx, wy, wz = _transverse_direction(wall_normal, (dx, dy, dz))
 
     @inbounds for i in axes(spins, 2)
@@ -82,9 +85,9 @@ function paint_domain_wall1D!(
         longitudinal = tanh(ξ)
         transverse = sech(ξ)
 
-        spins[1, i] += longitudinal * dx + transverse * wx - dx
-        spins[2, i] += longitudinal * dy + transverse * wy - dy
-        spins[3, i] += longitudinal * dz + transverse * wz - dz
+        spins[1, i] += longitudinal * dx + transverse * wx - bx
+        spins[2, i] += longitudinal * dy + transverse * wy - by
+        spins[3, i] += longitudinal * dz + transverse * wz - bz
     end
 
     return spins
@@ -98,6 +101,7 @@ end
         width=5.0,
         domain_direction=(0.0, 0.0, 1.0),
         wall_normal=(1.0, 0.0, 0.0),
+        background_direction=nothing,
     )
 
 Paint a 2D domain wall in-place on top of a uniformly magnetized background.
@@ -113,10 +117,10 @@ with `domain_direction = (0, 0, 1)`, `wall_normal = (1, 0, 0)` gives a Neel
 wall and `wall_normal = (0, 1, 0)` gives a Bloch wall.
 
 This modifier is additive, so it is intended to be applied to a mostly uniform
-state, possibly multiple times, followed by [`normalize_spins!`](@ref). This is
-why the domain direction is substracted at the end, to account for that uniformly
-magnetized seed. If that state does not align with the domain direction strange
-results might follow
+state, possibly multiple times, followed by [`normalize_spins!`](@ref). The
+painted wall profile is corrected by subtracting `background_direction`, which
+defaults to `domain_direction`. When painting multiple walls on the same seed,
+set `background_direction` to the original uniform seed direction.
 """
 function paint_domain_wall2D!(
     spins::AbstractArray{<:AbstractFloat, 3};
@@ -125,12 +129,14 @@ function paint_domain_wall2D!(
     width::Real = 5.0,
     domain_direction = (0.0, 0.0, 1.0),
     wall_normal = (1.0, 0.0, 0.0),
+    background_direction = nothing,
 )
     size(spins, 1) == 3 || throw(ArgumentError("Expected a spin array of size (3, Nx, Ny)."))
     width > 0 || throw(ArgumentError("width must be positive."))
     isnan(slope) && throw(ArgumentError("slope must be finite or Inf."))
 
     dx, dy, dz = _normalized_direction(domain_direction)
+    bx, by, bz = isnothing(background_direction) ? (dx, dy, dz) : _normalized_direction(background_direction)
     front_normal, front_tangent = _domain_wall_frame(slope)
     wall_global = _local_wall_direction(wall_normal, front_normal, front_tangent)
     wx, wy, wz = _transverse_direction(wall_global, (dx, dy, dz))
@@ -141,9 +147,9 @@ function paint_domain_wall2D!(
         longitudinal = tanh(xi)
         transverse = sech(xi)
 
-        spins[1, i, j] += longitudinal * dx + transverse * wx - dx
-        spins[2, i, j] += longitudinal * dy + transverse * wy - dy
-        spins[3, i, j] += longitudinal * dz + transverse * wz - dz
+        spins[1, i, j] += longitudinal * dx + transverse * wx - bx
+        spins[2, i, j] += longitudinal * dy + transverse * wy - by
+        spins[3, i, j] += longitudinal * dz + transverse * wz - bz
     end
 
     return spins

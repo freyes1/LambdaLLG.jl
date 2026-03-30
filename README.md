@@ -118,6 +118,9 @@ paint_skyrmion2D!(
     vorticity=1.0,
 )
 normalize_spins!(s2)
+
+When stacking multiple domain walls on the same uniform seed, keep
+`background_direction` fixed to that original seed direction for every wall.
 ```
 
 Use `normalize_spins!` if you modify a seed in-place before passing it to the
