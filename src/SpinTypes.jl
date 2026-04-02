@@ -49,7 +49,7 @@ Parameters and precomputed data for a 1D LLG simulation with open boundary condi
 - `ker_dx::Vector{Int}`: Relative site offsets for nonlocal damping kernel.
 - `Λtens::Array{Float64,3}`: Nonlocal damping tensor of size `(3, 3, n_offsets)`.
 - `fields::LLGFields1D`: Preallocated workspace buffers.
-- `stt_active::Bool`: Solver-controlled flag enabling the optional 1D STT term.
+- `stt_active::Bool`: Parameter flag enabling the optional 1D STT term.
 - `stag::Bool`: Enable staggered (two-sublattice) nonlocal damping and field terms.
 - `B_stag::Float64`: Staggered field amplitude in the z-direction.
 - `ker_dx_stag::Vector{Int}`: Relative offsets for staggered kernel.
@@ -62,6 +62,7 @@ Parameters and precomputed data for a 1D LLG simulation with open boundary condi
 # Constructor keywords
 - `D`: defaults to `(0.0, 0.0, 0.0)`.
 - `u_stt`, `beta_stt`: default to zero so current-induced torques are absent.
+- `stt_active`: defaults to `false`.
 - `ker_dx`: defaults to an empty vector.
 - `Λtens`: defaults to a zero-sized `(3, 3, 0)` tensor.
 """
@@ -92,6 +93,7 @@ mutable struct LLGParams1D
         D::NTuple{3, Float64} = (0.0, 0.0, 0.0),
         u_stt::Float64 = 0.0,
         beta_stt::Float64 = 0.0,
+        stt_active::Bool = false,
         ker_dx::Vector{Int} = Int[],
         Λtens::Array{Float64, 3} = zeros(3, 3, 0),
     )
@@ -113,7 +115,7 @@ mutable struct LLGParams1D
             ker_dx,
             Λtens,
             fields,
-            false,
+            stt_active,
             false,
             0.0,
             Int[],
@@ -138,13 +140,14 @@ Parameters and precomputed data for a 2D LLG simulation with open boundaries.
 - `ker_dx`, `ker_dy`: Relative offsets for nonlocal damping support.
 - `Λtens::Array{Float64,4}`: Nonlocal damping tensor `(a, b, kx, ky)`.
 - `fields::LLGFields2D`: Preallocated workspace buffers.
-- `stt_active::Bool`: Solver-controlled flag enabling the optional 2D STT term.
+- `stt_active::Bool`: Parameter flag enabling the optional 2D STT term.
 - `stag`, `B_stag`, `ker_dx_stag`, `ker_dy_stag`, `Λtens_stag`: Optional
   two-sublattice staggered terms.
 
 # Constructor keywords
 - `D`: defaults to zero bond vectors `((0.0, 0.0, 0.0), (0.0, 0.0, 0.0))`.
 - `u_stt`, `beta_stt`: default to zero so current-induced torques are absent.
+- `stt_active`: defaults to `false`.
 - `ker_dx`, `ker_dy`: default to empty vectors.
 - `Λtens`: defaults to a zero-sized `(3, 3, 0, 0)` tensor.
 """
@@ -179,6 +182,7 @@ mutable struct LLGParams2D
         D::NTuple{2, NTuple{3, Float64}} = ((0.0, 0.0, 0.0), (0.0, 0.0, 0.0)),
         u_stt::NTuple{2, Float64} = (0.0, 0.0),
         beta_stt::Float64 = 0.0,
+        stt_active::Bool = false,
         ker_dx::Vector{Int} = Int[],
         ker_dy::Vector{Int} = Int[],
         Λtens::Array{Float64, 4} = zeros(3, 3, 0, 0),
@@ -203,7 +207,7 @@ mutable struct LLGParams2D
             ker_dy,
             Λtens,
             fields,
-            false,
+            stt_active,
             false,
             0.0,
             Int[],

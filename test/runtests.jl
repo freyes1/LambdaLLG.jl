@@ -212,6 +212,112 @@ end
     @test_throws ArgumentError paint_domain_wall1D!(bad; wall_normal = (0.0, 0.0, 2.0))
 end
 
+@testset "STT activation uses parameter flag" begin
+    spins1D = zeros(3, 9)
+    for i in 1:9
+        theta = 0.45 + 0.03 * i
+        phi = 0.35 * i
+        spins1D[:, i] .= (sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta))
+    end
+
+    p1_off = LLGParams1D(
+        size(spins1D, 2),
+        0.0,
+        (0.0, 0.0, 0.0),
+        (0.0, 0.0, 0.0),
+        0.0;
+        u_stt = 0.2,
+        beta_stt = 0.3,
+        stt_active = false,
+    )
+    p1_on = LLGParams1D(
+        size(spins1D, 2),
+        0.0,
+        (0.0, 0.0, 0.0),
+        (0.0, 0.0, 0.0),
+        0.0;
+        u_stt = 0.2,
+        beta_stt = 0.3,
+        stt_active = true,
+    )
+
+    rhs1_off = copy(LambdaLLG.rhs1D!(copy(spins1D), p1_off, 0.0))
+    rhs1_on = copy(LambdaLLG.rhs1D!(copy(spins1D), p1_on, 0.0))
+
+    @test p1_off.stt_active == false
+    @test p1_on.stt_active == true
+    @test norm(rhs1_on - rhs1_off) > 1e-10
+
+    spins2D = zeros(3, 4, 5)
+    for j in 1:5, i in 1:4
+        theta = 0.35 + 0.04 * i
+        phi = 0.25 * i + 0.15 * j
+        spins2D[:, i, j] .= (sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta))
+    end
+
+    p2_off = LLGParams2D(
+        size(spins2D, 2),
+        size(spins2D, 3),
+        0.0,
+        (0.0, 0.0, 0.0),
+        (0.0, 0.0, 0.0),
+        0.0;
+        u_stt = (0.15, -0.05),
+        beta_stt = 0.25,
+        stt_active = false,
+    )
+    p2_on = LLGParams2D(
+        size(spins2D, 2),
+        size(spins2D, 3),
+        0.0,
+        (0.0, 0.0, 0.0),
+        (0.0, 0.0, 0.0),
+        0.0;
+        u_stt = (0.15, -0.05),
+        beta_stt = 0.25,
+        stt_active = true,
+    )
+
+    rhs2_off = copy(LambdaLLG.rhs2D!(copy(spins2D), p2_off, 0.0))
+    rhs2_on = copy(LambdaLLG.rhs2D!(copy(spins2D), p2_on, 0.0))
+
+    @test p2_off.stt_active == false
+    @test p2_on.stt_active == true
+    @test norm(rhs2_on - rhs2_off) > 1e-10
+
+    wall = uniform_seed1D(21; direction = (0.0, 0.0, 1.0))
+    paint_domain_wall1D!(wall; center = 11.0, width = 2.0, wall_normal = (0.0, 1.0, 0.0))
+    normalize_spins!(wall)
+
+    psolve_off = LLGParams1D(
+        21,
+        0.0,
+        (0.0, 0.0, 0.0),
+        (0.0, 0.0, 0.0),
+        0.0;
+        u_stt = 0.2,
+        beta_stt = 0.3,
+        stt_active = false,
+    )
+    psolve_on = LLGParams1D(
+        21,
+        0.0,
+        (0.0, 0.0, 0.0),
+        (0.0, 0.0, 0.0),
+        0.0;
+        u_stt = 0.2,
+        beta_stt = 0.3,
+        stt_active = true,
+    )
+
+    sol_off = evolve1D(copy(wall), (0.0, 0.5), psolve_off)
+    sol_on = evolve1D(copy(wall), (0.0, 0.5), psolve_on)
+
+    @test psolve_off.stt_active == false
+    @test psolve_on.stt_active == true
+    @test !isapprox(sol_off.u[end], sol_on.u[end]; atol = 1e-8, rtol = 1e-8)
+end
+
 @testset "2D domain-wall painter" begin
     horizontal_neel = uniform_seed2D(13, 11; direction = (0.0, 0.0, 1.0))
     paint_domain_wall2D!(
@@ -426,7 +532,7 @@ end
     @test isapprox(p.fields.dS_1, expected)
 end
 
-@testset "2D STT integrator flag" begin
+@testset "2D STT parameter flag" begin
     spins = zeros(3, 5, 5)
     x0 = 3.0
     y0 = 3.0
@@ -444,7 +550,7 @@ end
     end
     normalize_spins!(spins)
 
-    p = LLGParams2D(
+    p_off = LLGParams2D(
         5,
         5,
         0.0,
@@ -453,13 +559,25 @@ end
         0.0;
         u_stt = (0.2, 0.1),
         beta_stt = 0.15,
+        stt_active = false,
+    )
+    p_on = LLGParams2D(
+        5,
+        5,
+        0.0,
+        (0.0, 0.0, 0.0),
+        (0.0, 0.0, 0.0),
+        0.0;
+        u_stt = (0.2, 0.1),
+        beta_stt = 0.15,
+        stt_active = true,
     )
 
-    sol_off = evolve2D(copy(spins), (0.0, 0.2), p; reltol = 1e-7, abstol = 1e-7, stt = false)
-    @test p.stt_active == false
+    sol_off = evolve2D(copy(spins), (0.0, 0.2), p_off; reltol = 1e-7, abstol = 1e-7)
+    @test p_off.stt_active == false
 
-    sol_on = evolve2D(copy(spins), (0.0, 0.2), p; reltol = 1e-7, abstol = 1e-7, stt = true)
-    @test p.stt_active == false
+    sol_on = evolve2D(copy(spins), (0.0, 0.2), p_on; reltol = 1e-7, abstol = 1e-7)
+    @test p_on.stt_active == true
 
     final_off = reshape(sol_off.u[end], size(spins))
     final_on = reshape(sol_on.u[end], size(spins))

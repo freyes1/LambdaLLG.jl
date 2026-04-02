@@ -15,14 +15,14 @@
 
 1. Build `LLGParams1D` with exchange/anisotropy/field/damping settings.
 2. Prepare `s0` as a `3 x Nx` matrix of unit spin vectors.
-3. Run `evolve1D(s0, tspan, p)` or `evolve1D(s0, tspan, p; stt=true)` when using the optional 1D spin-transfer torque.
+3. Run `evolve1D(s0, tspan, p)`. When using the optional 1D spin-transfer torque, set `p.stt_active = true` first or construct `LLGParams1D(...; stt_active=true)`.
 4. Convert output with `format_results(sol)` or post-process `sol.u` directly.
 
 ## Typical 2D workflow
 
 1. Build `LLGParams2D(Nx, Ny, ...)`.
 2. Prepare `s0` as a `3 x Nx x Ny` tensor.
-3. Run `evolve2D(s0, tspan, p)` or `evolve2D(s0, tspan, p; stt=true)` when using the optional 2D spin-transfer torque.
+3. Run `evolve2D(s0, tspan, p)`. When using the optional 2D spin-transfer torque, set `p.stt_active = true` first or construct `LLGParams2D(...; stt_active=true)`.
 4. Analyze observables such as average magnetization versus time.
 
 ## Enabling nonlocal damping
